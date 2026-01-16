@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QPushButton, QFrame, QScrollArea,
                              QApplication, QMessageBox, QTabWidget, QFileDialog,
-                             QDialog, QComboBox, QDialogButtonBox)
+                             QDialog, QComboBox, QDialogButtonBox, QGridLayout)
 from PySide6.QtCore import Qt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -184,7 +184,8 @@ class OmniPDAnalyzer(QWidget):
         # Risultati
         self.res_box = QFrame()
         self.res_box.setStyleSheet("background-color: #1e293b; border-radius: 10px; padding: 10px;")
-        res_l = QVBoxLayout(self.res_box)
+        res_l = QGridLayout(self.res_box)
+        res_l.setSpacing(8)
         
         self.lbl_cp = QLabel("CP: -- W")
         self.lbl_wprime = QLabel("W': -- J")
@@ -193,13 +194,15 @@ class OmniPDAnalyzer(QWidget):
         self.lbl_rmse = QLabel("RMSE: -- W")
         self.lbl_mae = QLabel("MAE: -- W")
         
-        res_l.addWidget(self.lbl_cp)
-        res_l.addWidget(self.lbl_wprime)
-        res_l.addWidget(self.lbl_pmax)
-        res_l.addWidget(self.lbl_a)
-        res_l.addWidget(QLabel("---"))
-        res_l.addWidget(self.lbl_rmse)
-        res_l.addWidget(self.lbl_mae)
+        # Colonna 1 (sinistra): CP, W', Pmax, A
+        res_l.addWidget(self.lbl_cp, 0, 0)
+        res_l.addWidget(self.lbl_wprime, 1, 0)
+        res_l.addWidget(self.lbl_pmax, 2, 0)
+        res_l.addWidget(self.lbl_a, 3, 0)
+        
+        # Colonna 2 (destra): RMSE, MAE
+        res_l.addWidget(self.lbl_rmse, 0, 1)
+        res_l.addWidget(self.lbl_mae, 1, 1)
         
         self.sidebar.addWidget(self.res_box)
 
@@ -385,6 +388,14 @@ class OmniPDAnalyzer(QWidget):
             QMessageBox.critical(self, "Errore", f"Errore durante l'importazione:\n{str(e)}")
 
     def run_calculation(self):
+        # Pulisci vecchie connessioni di hover
+        if self.cid_ompd is not None:
+            self.canvas1.mpl_disconnect(self.cid_ompd)
+            self.cid_ompd = None
+        if self.cid_residuals is not None:
+            self.canvas2.mpl_disconnect(self.cid_residuals)
+            self.cid_residuals = None
+        
         try:
             t_data = []
             p_data = []
@@ -429,7 +440,7 @@ class OmniPDAnalyzer(QWidget):
             self.MAE = np.mean(np.abs(self.residuals))
 
             # Aggiornamento Label
-            self.lbl_cp.setText(f"CP: {CP:.2f} W")
+            self.lbl_cp.setText(f"CP: {CP:.0f} W")
             self.lbl_wprime.setText(f"W': {W_prime:.0f} J")
             self.lbl_pmax.setText(f"Pmax: {Pmax:.0f} W")
             self.lbl_a.setText(f"A: {A:.2f}")
@@ -508,6 +519,86 @@ class OmniPDAnalyzer(QWidget):
                        labelcolor='white', loc='lower left', fontsize=9)
         
         self.canvas1.draw()
+        
+        # Connetti event hover al grafico OmPD
+        self._connect_ompd_hover()
+
+    def _connect_ompd_hover(self):
+        """Connette gli eventi di hover per il grafico OmPD"""
+        # Disconnetti vecchi eventi se presenti
+        if self.cid_ompd is not None:
+            self.canvas1.mpl_disconnect(self.cid_ompd)
+        
+        # Connetti nuovo evento
+        self.cid_ompd = self.canvas1.mpl_connect('motion_notify_event', self._on_ompd_hover)
+    
+    def _on_ompd_hover(self, event):
+        """Gestisce il movimento del mouse sul grafico OmPD"""
+        if event.inaxes != self.ax1 or self.params is None:
+            # Rimuovi annotazioni se fuori dall'asse
+            if self.hover_ann_points is not None:
+                self.hover_ann_points.remove()
+                self.hover_ann_points = None
+            if self.ann_curve is not None:
+                self.ann_curve.remove()
+                self.ann_curve = None
+            self.canvas1.draw_idle()
+            return
+        
+        # Ottieni coordinate mouse
+        x_mouse = event.xdata
+        if x_mouse is None:
+            return
+        
+        CP, W_prime, Pmax, A = self.params
+        
+        # Rimuovi vecchia annotazione sulla curva
+        if self.ann_curve is not None:
+            self.ann_curve.remove()
+            self.ann_curve = None
+        
+        # Aggiungi annotazione per la curva nel punto x_mouse
+        try:
+            y_curve = ompd_power(x_mouse, CP, W_prime, Pmax, A)
+            self.ann_curve = self.ax1.annotate(
+                f"{_format_time_label(x_mouse)}\n{int(y_curve)}W",
+                xy=(x_mouse, y_curve),
+                xytext=(5, 5),
+                textcoords='offset points',
+                bbox=dict(boxstyle='round,pad=0.5', facecolor='#7c3aed', alpha=0.8, edgecolor='white', linewidth=1),
+                fontsize=8,
+                color='white',
+                weight='bold'
+            )
+        except:
+            pass
+        
+        # Hover sui punti inseriti
+        if self.hover_ann_points is not None:
+            self.hover_ann_points.remove()
+            self.hover_ann_points = None
+        
+        # Trova il punto più vicino al mouse
+        distances = np.abs(self.x_data - x_mouse)
+        closest_idx = np.argmin(distances)
+        closest_dist = distances[closest_idx]
+        
+        # Se abbastanza vicino, mostra annotazione
+        if closest_dist < max(self.x_data) * 0.05:  # 5% della scala
+            x_point = self.x_data[closest_idx]
+            y_point = self.y_data[closest_idx]
+            self.hover_ann_points = self.ax1.annotate(
+                f"MMP: {_format_time_label(x_point)} @ {int(y_point)}W",
+                xy=(x_point, y_point),
+                xytext=(5, -20),
+                textcoords='offset points',
+                bbox=dict(boxstyle='round,pad=0.5', facecolor='#4ade80', alpha=0.8, edgecolor='white', linewidth=1),
+                fontsize=8,
+                color='black',
+                weight='bold'
+            )
+        
+        self.canvas1.draw_idle()
 
     def update_residuals_plot(self):
         """Aggiorna il grafico dei residui"""
@@ -548,6 +639,56 @@ class OmniPDAnalyzer(QWidget):
                      bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
         
         self.canvas2.draw()
+        
+        # Connetti event hover al grafico residui
+        self._connect_residuals_hover()
+    
+    def _connect_residuals_hover(self):
+        """Connette gli eventi di hover per il grafico residui"""
+        # Disconnetti vecchi eventi se presenti
+        if self.cid_residuals is not None:
+            self.canvas2.mpl_disconnect(self.cid_residuals)
+        
+        # Connetti nuovo evento
+        self.cid_residuals = self.canvas2.mpl_connect('motion_notify_event', self._on_residuals_hover)
+    
+    def _on_residuals_hover(self, event):
+        """Gestisce il movimento del mouse sul grafico residui"""
+        if event.inaxes != self.ax2:
+            if self.hover_ann_residuals is not None:
+                self.hover_ann_residuals.remove()
+                self.hover_ann_residuals = None
+            self.canvas2.draw_idle()
+            return
+        
+        x_mouse = event.xdata
+        if x_mouse is None:
+            return
+        
+        if self.hover_ann_residuals is not None:
+            self.hover_ann_residuals.remove()
+            self.hover_ann_residuals = None
+        
+        # Trova il punto più vicino
+        distances = np.abs(self.x_data - x_mouse)
+        closest_idx = np.argmin(distances)
+        closest_dist = distances[closest_idx]
+        
+        if closest_dist < max(self.x_data) * 0.05:
+            x_point = self.x_data[closest_idx]
+            y_residual = self.residuals[closest_idx]
+            self.hover_ann_residuals = self.ax2.annotate(
+                f"{_format_time_label(x_point)}\nResidual: {int(y_residual)}W",
+                xy=(x_point, y_residual),
+                xytext=(5, 10),
+                textcoords='offset points',
+                bbox=dict(boxstyle='round,pad=0.5', facecolor='red', alpha=0.8, edgecolor='white', linewidth=1),
+                fontsize=8,
+                color='white',
+                weight='bold'
+            )
+        
+        self.canvas2.draw_idle()
 
     def update_weff_plot(self):
         """Aggiorna il grafico W'eff"""
