@@ -13,12 +13,8 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont
 
 from PEFFORT.gui_interface import EffortAnalyzer
-import importlib
+from omniPD_calculator import OmniPDAnalyzer
 from shared.styles import get_style
-
-# Import dinamico per omniPD_calculator
-omnipd_module = importlib.import_module('omniPD_calculator.gui_omnipd')
-OmniPDAnalyzer = omnipd_module.OmniPDAnalyzer
 
 
 class BfactorLauncher(QWidget):
