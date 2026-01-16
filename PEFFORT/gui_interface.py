@@ -273,7 +273,7 @@ class EffortAnalyzer(QWidget):
             return
         
         try:
-            from core_engine import parse_fit, create_efforts, merge_extend, split_included, detect_sprints
+            from .core_engine import parse_fit, create_efforts, merge_extend, split_included, detect_sprints
             
             self.status_label.setText("Analisi in corso...")
             QApplication.processEvents()

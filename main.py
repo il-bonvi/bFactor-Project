@@ -24,7 +24,7 @@ class BfactorLauncher(QWidget):
     """
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("bFactor Performance Suite - Launcher")
+        self.setWindowTitle("bFactor Project")
         self.setMinimumSize(1000, 700)
         self.setStyleSheet(get_style("Forest Green"))
         
@@ -42,7 +42,7 @@ class BfactorLauncher(QWidget):
         # =====================
         # HEADER
         # =====================
-        header = QLabel("bFactor Performance Suite")
+        header = QLabel("bFactor Project")
         header.setObjectName("Header")
         header.setAlignment(Qt.AlignCenter)
         header.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
@@ -108,7 +108,7 @@ class BfactorLauncher(QWidget):
         # =====================
         # FOOTER
         # =====================
-        footer = QLabel("© 2024 bFactor Engine | Sviluppato da Andrea Bonvicin")
+        footer = QLabel("© 2026 bFactor Project | Developed by Andrea Bonvicin")
         footer.setAlignment(Qt.AlignCenter)
         footer.setStyleSheet("color: #64748b; font-size: 11px; margin-top: 20px;")
         main_layout.addWidget(footer)
