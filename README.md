@@ -209,18 +209,6 @@ Funzionalità previste:
 
 ---
 
-## 💦 Easter Egg: Amalia allenati (🎉)
-
-Easter egg speciale nel launcher principale.
-
-```
-"Amalia non vuole allenarsi. Riprova un altro giorno"
-```
-
-Accedi cliccando su "💦 Amalia allenati" nel BfactorLauncher.
-
----
-
 ## 📁 Struttura Progetto
 
 ```
@@ -369,7 +357,6 @@ Vedere [CHANGELOG.md](CHANGELOG.md) per storico completo delle modifiche.
 - ✅ Gestione finestre intelligente
 - ⏳ Omniselector (in sviluppo)
 - ⏳ Percentile Selector (in sviluppo)
-- 🎉 Easter Egg Amalia (implementato)
 
 ---
 
