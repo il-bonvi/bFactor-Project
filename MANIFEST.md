@@ -199,8 +199,8 @@
 | 3 | **INSTALLATION.md** | Setup passo-passo | Dev/User | ⭐⭐ | ✅ Nuovo |
 | 4 | **TROUBLESHOOTING.md** | Soluzione problemi | Tutti | ⭐⭐ | ✅ Nuovo |
 | 5 | **API_REFERENCE.md** | API documentazione | Dev | ⭐⭐ | ✅ Nuovo |
-| 6 | **STRUTTURA_PROGETTO.md** | Architettura | Dev | ⭐ | ✅ Aggiornato |
-| 7 | **REFACTORING_SUMMARY.md** | Modifiche tecniche | Dev | ⭐ | ✅ Aggiornato |
+| 6 | **STRUTTURA_PROGETTO.md** | Architettura | Dev | ⭐⭐ | ✅ Nuovo (creato!) |
+| 7 | **REFACTORING_SUMMARY.md** | Modifiche tecniche | Dev | ⭐⭐ | ✅ Nuovo (creato!) |
 | 8 | **VERSION.md** | Versionamento | Tutti | ⭐ | ✅ Aggiornato |
 | 9 | **CHANGELOG.md** | Storico modifiche | Maintainer | ⭐ | ✅ Riscritto |
 | 10 | **MANIFEST.md** | Questo file | Tutti | ⭐ | ✅ Nuovo |
