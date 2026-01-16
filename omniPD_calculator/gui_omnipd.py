@@ -22,11 +22,11 @@ from matplotlib.ticker import FixedLocator, FuncFormatter
 # Gestione import relativi/assoluti per compatibility
 try:
     from .omnipd_core import (ompd_power, ompd_power_short, w_eff, 
-                              _format_time_label, TCPMAX)
+                              _format_time_label, TCPMAX, calculate_omnipd_model)
 except ImportError:
     # Fallback per esecuzione diretta
     from omnipd_core import (ompd_power, ompd_power_short, w_eff, 
-                             _format_time_label, TCPMAX)
+                             _format_time_label, TCPMAX, calculate_omnipd_model)
 
 try:
     from shared.styles import get_style
@@ -388,36 +388,24 @@ class OmniPDAnalyzer(QWidget):
             QMessageBox.critical(self, "Errore", f"Errore durante l'importazione:\n{str(e)}")
     
     def _calculate_model(self):
-        """Calcola il modello OmniPD (logica condivisa)"""
+        """Calcola il modello OmniPD usando la logica core"""
         try:
             if self.x_data is None or len(self.x_data) < 4:
                 raise ValueError("Dati insufficienti")
             
-            # Fitting del modello COMPLETO
-            initial_guess = [
-                np.percentile(self.y_data, 30),
-                20000,
-                self.y_data.max(),
-                5
-            ]
+            # Usa la logica di calcolo dal core
+            result = calculate_omnipd_model(self.x_data, self.y_data)
             
-            popt, _ = curve_fit(
-                ompd_power, 
-                self.x_data, 
-                self.y_data, 
-                p0=initial_guess, 
-                maxfev=20000,
-                bounds=([0, 0, 0, 0], [np.inf, np.inf, np.inf, np.inf])
-            )
+            # Estrai i risultati
+            self.params = result['params']
+            self.residuals = result['residuals']
+            self.RMSE = result['RMSE']
+            self.MAE = result['MAE']
             
-            CP, W_prime, Pmax, A = popt
-            self.params = popt
-
-            # Calcolo errori
-            P_pred = ompd_power(self.x_data, CP, W_prime, Pmax, A)
-            self.residuals = self.y_data - P_pred
-            self.RMSE = np.sqrt(np.mean(self.residuals**2))
-            self.MAE = np.mean(np.abs(self.residuals))
+            CP = result['CP']
+            W_prime = result['W_prime']
+            Pmax = result['Pmax']
+            A = result['A']
 
             # Aggiornamento Label
             self.lbl_cp.setText(f"CP: {CP:.2f} W")
