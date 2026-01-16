@@ -306,7 +306,7 @@ class OmniPDAnalyzer(QWidget):
         self.scroll_layout.addLayout(row)
 
     def remove_last_row(self):
-        if len(self.rows) > 4:
+        if len(self.rows) > 0:
             row = self.rows.pop()
             for i in reversed(range(row.count())):
                 widget = row.itemAt(i).widget()
@@ -326,7 +326,7 @@ class OmniPDAnalyzer(QWidget):
             self.sec_out.setText("= 0 s")
 
     def import_file(self):
-        """Importa dati da file CSV o Excel"""
+        """Importa dati da file CSV o Excel ed elabora direttamente"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Seleziona file",
@@ -373,46 +373,26 @@ class OmniPDAnalyzer(QWidget):
                 QMessageBox.critical(self, "Errore", "File senza dati numerici validi")
                 return
             
-            # Rimuovi righe esistenti
-            while len(self.rows) > 0:
-                self.remove_last_row()
+            # Carica direttamente i dati e calcola senza visualizzare nelle righe
+            self.x_data = df["t"].values
+            self.y_data = df["P"].values
             
-            # Aggiungi nuove righe dai dati importati
-            for _, row in df.iterrows():
-                self.add_empty_row(str(int(row["t"])), str(int(row["P"])))
+            if len(self.x_data) < 4:
+                QMessageBox.critical(self, "Errore", "Hai bisogno di almeno 4 punti!")
+                return
             
-            QMessageBox.information(self, "Successo", 
-                                  f"Importati {len(df)} punti dati!")
+            # Esegui il calcolo direttamente
+            self._calculate_model()
             
         except Exception as e:
             QMessageBox.critical(self, "Errore", f"Errore durante l'importazione:\n{str(e)}")
-
-    def run_calculation(self):
-        # Pulisci vecchie connessioni di hover
-        if self.cid_ompd is not None:
-            self.canvas1.mpl_disconnect(self.cid_ompd)
-            self.cid_ompd = None
-        if self.cid_residuals is not None:
-            self.canvas2.mpl_disconnect(self.cid_residuals)
-            self.cid_residuals = None
-        
+    
+    def _calculate_model(self):
+        """Calcola il modello OmniPD (logica condivisa)"""
         try:
-            t_data = []
-            p_data = []
+            if self.x_data is None or len(self.x_data) < 4:
+                raise ValueError("Dati insufficienti")
             
-            for row in self.rows:
-                t_val = row.t_input.text().strip()
-                w_val = row.w_input.text().strip()
-                if t_val and w_val:
-                    t_data.append(float(t_val))
-                    p_data.append(float(w_val))
-
-            if len(t_data) < 4:
-                raise ValueError("Inserisci almeno 4 punti!")
-
-            self.x_data = np.array(t_data)
-            self.y_data = np.array(p_data)
-
             # Fitting del modello COMPLETO
             initial_guess = [
                 np.percentile(self.y_data, 30),
@@ -440,7 +420,7 @@ class OmniPDAnalyzer(QWidget):
             self.MAE = np.mean(np.abs(self.residuals))
 
             # Aggiornamento Label
-            self.lbl_cp.setText(f"CP: {CP:.0f} W")
+            self.lbl_cp.setText(f"CP: {CP:.2f} W")
             self.lbl_wprime.setText(f"W': {W_prime:.0f} J")
             self.lbl_pmax.setText(f"Pmax: {Pmax:.0f} W")
             self.lbl_a.setText(f"A: {A:.2f}")
@@ -451,6 +431,38 @@ class OmniPDAnalyzer(QWidget):
             self.update_ompd_plot()
             self.update_residuals_plot()
             self.update_weff_plot()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Errore Calcolo", str(e))
+
+    def run_calculation(self):
+        # Pulisci vecchie connessioni di hover
+        if self.cid_ompd is not None:
+            self.canvas1.mpl_disconnect(self.cid_ompd)
+            self.cid_ompd = None
+        if self.cid_residuals is not None:
+            self.canvas2.mpl_disconnect(self.cid_residuals)
+            self.cid_residuals = None
+        
+        try:
+            t_data = []
+            p_data = []
+            
+            for row in self.rows:
+                t_val = row.t_input.text().strip()
+                w_val = row.w_input.text().strip()
+                if t_val and w_val:
+                    t_data.append(float(t_val))
+                    p_data.append(float(w_val))
+
+            if len(t_data) < 4:
+                raise ValueError("Inserisci almeno 4 punti!")
+
+            self.x_data = np.array(t_data)
+            self.y_data = np.array(p_data)
+
+            # Usa la logica di calcolo condivisa
+            self._calculate_model()
 
         except Exception as e:
             QMessageBox.critical(self, "Errore Calcolo", str(e))
@@ -467,8 +479,8 @@ class OmniPDAnalyzer(QWidget):
 
         # Dati inseriti
         self.ax1.scatter(self.x_data, self.y_data, color='#4ade80', 
-                        label='MMP Data', zorder=5, s=60, 
-                        edgecolors='white', linewidths=1)
+                        label='MMP Data', zorder=5, s=80, marker='x',
+                        linewidths=1)
 
         # Range di tempo
         t_max = max(max(self.x_data) * 1.2, 3600)
