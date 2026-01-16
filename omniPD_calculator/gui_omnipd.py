@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from .engine_omnipd import calculate_omnpd_fit
 
 # Gestione percorsi per trovare 'shared'
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -107,9 +108,10 @@ class OmniPDAnalyzer(QWidget):
         sidebar_layout.addWidget(self.weight_input)
 
         # Pulsante Calcola Finale
-        self.btn_calculate = QPushButton("🚀 CALCOLA MODELLI")
+        self.btn_calculate = QPushButton("CALCOLA MODELLO")
         self.btn_calculate.setObjectName("ActionBtn")
         self.btn_calculate.setMinimumHeight(50)
+        self.btn_calculate.clicked.connect(self.run_calculations)
         sidebar_layout.addWidget(self.btn_calculate)
 
         sidebar_layout.addStretch()
@@ -159,6 +161,40 @@ class OmniPDAnalyzer(QWidget):
                 self.web_view.setHtml(f"<body style='background-color:#061f17; color:#4ade80; display:flex; justify-content:center; align-items:center; height:100vh;'><h2>✅ {os.path.basename(file_path)} caricato!</h2></body>")
             except Exception as e:
                 QMessageBox.critical(self, "Errore", f"Impossibile caricare il file:\n{str(e)}")
+
+    def run_calculations(self):
+            try:
+
+                times, powers = [], []
+                for r in range(self.data_table.rowCount()):
+                    t_item = self.data_table.item(r, 0)
+                    p_item = self.data_table.item(r, 1)
+                    if t_item and p_item and t_item.text() and p_item.text():
+                        times.append(float(t_item.text().replace(',', '.')))
+                        powers.append(float(p_item.text().replace(',', '.')))
+
+                if len(times) < 4:
+                    QMessageBox.warning(self, "Dati Insufficienti", "Servono almeno 4 punti!")
+                    return
+                
+                result = calculate_omnpd_fit(times, powers)
+
+                if result["success"]:
+                    p = result["params"]
+                    m = result["metrics"]
+                    msg = (f"✅ MODELLO CALCOLATO\n\n"
+                        f"CP: {p['CP']:.0f} W\n"
+                        f"W': {p['W_prime']:.0f} J\n"
+                        f"Pmax: {p['Pmax']:.0f} W\n"
+                        f"A: {p['A']:.2f}\n\n"
+                        f"Accuratezza (RMSE): {m['RMSE']:.1f} W")
+                    
+                    QMessageBox.information(self, "Risultati OmniPD", msg)
+                else:
+                    QMessageBox.critical(self, "Errore Fit", f"Il calcolo è fallito: {result['error']}")
+
+            except ValueError:
+                QMessageBox.critical(self, "Errore Dati", "Inserisci solo numeri validi nella tabella.")
 
 if __name__ == "__main__":
     from PySide6.QtWidgets import QApplication
