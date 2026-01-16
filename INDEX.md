@@ -1,4 +1,4 @@
-# 📚 bFactor Performance Suite - Documentation Index
+# 📚 bFactor Project - Documentation Index
 
 **Guida completa a tutta la documentazione disponibile.**
 

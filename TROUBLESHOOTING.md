@@ -1,4 +1,4 @@
-# TROUBLESHOOTING - bFactor Performance Suite
+# TROUBLESHOOTING - bFactor Project
 
 **Guida per risolvere problemi comuni.**
 

@@ -1,4 +1,4 @@
-# bFactor Performance Suite
+# bFactor Project
 
 **Versione**: 0.2  
 **Data Ultimo Update**: 16 Gennaio 2026  
@@ -374,4 +374,4 @@ TBD
 
 **Sviluppato da**: Andrea Bonvicin  
 **Data**: 16 Gennaio 2026  
-**Progetto**: bFactor Performance Suite
+**Progetto**: bFactor Project

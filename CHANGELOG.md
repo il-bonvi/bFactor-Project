@@ -1,4 +1,4 @@
-# CHANGELOG - bFactor Performance Suite
+# CHANGELOG - bFactor Project
 
 **Storico completo delle versioni e modifiche effettuate.**
 

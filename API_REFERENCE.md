@@ -1,4 +1,4 @@
-# API REFERENCE - bFactor Performance Suite
+# API REFERENCE - bFactor Project
 
 **Documentazione tecnica completa di tutte le API e moduli.**
 

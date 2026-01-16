@@ -1,4 +1,4 @@
-# INSTALLATION GUIDE - bFactor Performance Suite
+# INSTALLATION GUIDE - bFactor Project
 
 **Guida completa per l'installazione e configurazione.**
 

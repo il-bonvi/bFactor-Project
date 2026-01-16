@@ -1,6 +1,6 @@
 # 📁 STRUTTURA_PROGETTO - Guida all'Architettura
 
-**Documentazione completa della struttura di bFactor Performance Suite.**
+**Documentazione completa della struttura di bFactor Project.**
 
 ---
 
@@ -111,7 +111,7 @@ Apre OmniPD Calculator direttamente.
 
 ```python
 """
-bFactor Performance Suite - Suite modulare per analisi performance ciclistico
+bFactor Project
 """
 
 __version__ = "0.2"

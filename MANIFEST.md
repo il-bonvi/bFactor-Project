@@ -1,4 +1,4 @@
-# 📋 MANIFEST - Documentazione bFactor Performance Suite
+# 📋 MANIFEST - Documentazione bFactor Project
 
 **Elenco completo di tutti i file di documentazione del progetto.**
 
