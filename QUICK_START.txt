@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+"""
+QUICK START - Guida Rapida bFactor Performance Suite
+=====================================================
+"""
+
+print("""
+╔════════════════════════════════════════════════════════════════╗
+║     bFactor Performance Suite - Refactoring Completato! ✅     ║
+╚════════════════════════════════════════════════════════════════╝
+
+📊 STRUTTURA TRASFORMATA
+════════════════════════════════════════════════════════════════
+
+bFactor-Project/
+├── __init__.py                          ✨ Package root
+├── main.py                              🚀 Launcher (NUOVO)
+├── README.md                            📖 Documentazione
+├── REFACTORING_SUMMARY.md               📋 Riepilogo
+├── STRUTTURA_PROGETTO.md                📁 Struttura
+├── CHANGELOG.md                         📝 Modifiche
+│
+└── PEFFORT/
+    ├── __init__.py                      ✨ Package module
+    ├── main.py                          🔄 Aggiornato
+    ├── core_engine.py                   ✅ Stabile
+    ├── gui_interface.py                 ✨ Import relativi
+    └── export_manager.py                ✨ Import relativi
+
+
+🎯 4 PASSAGGI COMPLETATI
+════════════════════════════════════════════════════════════════
+
+✅ 1. Package Structure
+   └─ Creati __init__.py nella root e in PEFFORT/
+      Import ora come: from PEFFORT.modulo import ...
+
+✅ 2. Import Relativi
+   └─ Convertiti tutti gli import in PEFFORT/ a relativi
+      from .core_engine import ...  (instead of from core_engine)
+
+✅ 3. Launcher Principale
+   └─ Riscritto main.py con 3 pulsanti eleganti
+      • 📈 PEFFORT Analyzer (operativo)
+      • 🎯 Omniselector (in sviluppo)
+      • ⚡ OmniPD Calculator (in sviluppo)
+
+✅ 4. Pulizia Moduli
+   └─ Rimosso blocco if __name__ da PEFFORT/main.py
+      Nessun conflitto con launcher principale
+
+
+🚀 COME INIZIARE
+════════════════════════════════════════════════════════════════
+
+Passo 1: Aprire terminale nella cartella del progetto
+   cd c:\\Users\\bonvi\\Documents\\GitHub\\bFactor-Project
+
+Passo 2: Lanciare il launcher
+   python main.py
+
+Passo 3: Cliccare un pulsante
+   • PEFFORT Analyzer → Apre l'analizzatore
+   • Omniselector → Messaggio "In fase di sviluppo"
+   • OmniPD Calculator → Messaggio "In fase di sviluppo"
+
+
+🎨 TEMA PERSONALIZZATO
+════════════════════════════════════════════════════════════════
+
+Launcher (main.py):
+  • Colore principale: Verde foresta (#4ade80)
+  • Background: Scuro (#061f17)
+  • Pulsanti: 3 colori distinti
+    - PEFFORT: Verde (#16a34a)
+    - Omniselector: Blu (#2563eb)
+    - OmniPD: Viola (#7c3aed)
+
+Inside PEFFORT Analyzer:
+  • Tema selezionabile da dropdown
+  • Forest Green (predefinito)
+  • Deep Ocean, VO2, ABCoaching
+  • Dark mode professionale
+
+
+📊 FUNZIONALITÀ PEFFORT
+════════════════════════════════════════════════════════════════
+
+✨ Analisi File FIT
+  • Caricamento file .fit
+  • Parsing dati FIT automatico
+  • Rilevamento sforzi sostenuti
+  • Rilevamento sprint
+
+📈 Metriche Calcolate
+  • Potenza media e picco
+  • W/kg (potenza normalizzata)
+  • % FTP (percentuale Critical Power)
+  • VAM (velocità ascensione media)
+  • Energia (kJ totali)
+  • Frequenza cardiaca
+
+🎨 Visualizzazioni
+  • Grafico interattivo altitudine vs potenza
+  • Annotazioni automatiche per sforzi
+  • Tabelle dettagliate efforts e sprint
+  • Hover interattivo con info complete
+
+📄 Export
+  • Report PDF con grafico e tabelle
+  • Apertura nel browser
+  • Parametri analisi inclusi
+
+
+⚙️ PARAMETRI CONFIGURABILI
+════════════════════════════════════════════════════════════════
+
+Efforts Detection:
+  • Finestra (s): 60 (durata finestra)
+  • Merge (%): 15 (differenza merge efforts)
+  • Min FTP (%): 100 (soglia minima)
+  • Trim (s/%): 10s, 85% (trim finestra e soglia)
+  • Extend (s/%): 15s, 80% (extend finestra e soglia)
+
+Sprint Detection:
+  • Finestra (s): 5 (durata finestra sprint)
+  • Potenza Min: 600W (soglia minima potenza)
+
+Athlete Profile:
+  • FTP (W): Critical Power in Watt
+  • Peso (kg): Peso atleta per normalizzazione
+
+
+💻 COMANDI UTILI
+════════════════════════════════════════════════════════════════
+
+Lanciare il progetto:
+  python main.py
+
+Lanciare PEFFORT standalone (opzionale):
+  python -c "from PEFFORT.main import launch_peffort; launch_peffort()"
+
+Testare import:
+  python -c "from PEFFORT.gui_interface import EffortAnalyzer; print('OK')"
+
+Verificare sintassi:
+  python -m py_compile main.py PEFFORT/*.py
+
+
+📚 FILE DOCUMENTAZIONE
+════════════════════════════════════════════════════════════════
+
+README.md
+  └─ Guida all'uso generale e requisiti
+
+REFACTORING_SUMMARY.md
+  └─ Riepilogo completo del refactoring
+
+STRUTTURA_PROGETTO.md
+  └─ Descrizione dettagliata struttura
+
+CHANGELOG.md
+  └─ Lista modifiche file per file
+
+questo file (QUICK_START.md)
+  └─ Guida rapida
+
+
+🐛 TROUBLESHOOTING
+════════════════════════════════════════════════════════════════
+
+Errore: ModuleNotFoundError: No module named 'PySide6'
+  Soluzione: pip install PySide6
+
+Errore: ImportError in gui_interface
+  Verifica: Eseguire da root del progetto
+  Comando: cd c:\\Users\\bonvi\\Documents\\GitHub\\bFactor-Project
+
+File FIT non si carica
+  Verifica: File è formato FIT valido
+  Prova: Usare file da dispositivo Garmin, Wahoo, Stages
+
+GUI non si mostra
+  Verifica: Sistema operativo supporta GUI
+  Prova: Eseguire "python main.py" da terminale, non da IDE
+
+
+🔮 PROSSIMI PASSI
+════════════════════════════════════════════════════════════════
+
+Fase 1 - Completare PEFFORT
+  ✅ Già funzionante
+  └─ Miglioramenti UI opzionali
+
+Fase 2 - Implementare Omniselector
+  ☐ Creare Omniselector/
+  ☐ Creare Omniselector/__init__.py
+  ☐ Implementare modulo
+  ☐ Collegare a launcher
+
+Fase 3 - Implementare OmniPD Calculator
+  ☐ Creare OmniPD/
+  ☐ Creare OmniPD/__init__.py
+  ☐ Implementare modulo
+  ☐ Collegare a launcher
+
+Fase 4 - Configurazione Centralizzata
+  ☐ Creare config.py
+  ☐ Implementare gestione configurazione
+  ☐ Salvare preferenze utente
+
+Fase 5 - Logging
+  ☐ Creare logging.py
+  ☐ Implementare logging centralizzato
+  ☐ File log separati per modulo
+
+
+✨ CARATTERISTICHE DELLA NUOVA STRUTTURA
+════════════════════════════════════════════════════════════════
+
+✅ Modularità
+   Ogni modulo è indipendente e importabile
+
+✅ Scalabilità
+   Facile aggiungere nuovi moduli (Omniselector, OmniPD)
+
+✅ Manutenibilità
+   Codice ben organizzato e documentato
+
+✅ Professionalità
+   Launcher elegante con tema coerente
+
+✅ Portabilità
+   Import relativi funzionano da qualsiasi percorso
+
+✅ Robustezza
+   Gestione intelligente errori e finestre
+
+
+📞 SUPPORTO
+════════════════════════════════════════════════════════════════
+
+Per problemi o domande:
+  1. Consultare README.md
+  2. Consultare REFACTORING_SUMMARY.md
+  3. Controllare console per messaggi di errore
+  4. Contattare lo sviluppatore
+
+
+════════════════════════════════════════════════════════════════
+
+🎉 Progetto trasformato in suite modulare professionale!
+
+Il launcher è pronto. Esegui:
+  python main.py
+
+════════════════════════════════════════════════════════════════
+""")
