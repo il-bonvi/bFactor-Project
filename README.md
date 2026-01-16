@@ -15,9 +15,9 @@ Suite modulare professionale per l'analisi avanzata di metriche di performance c
 | Modulo | Status | Descrizione |
 |--------|--------|-------------|
 | **📈 PEFFORT Analyzer** | ✅ Operativo | Analisi file FIT, rilevamento sforzi e sprint |
-| **⚡ OmniPD Calculator** | ✅ Operativo | Modello potenza-durata con curve CP/W'/Pmax |
-| **🎯 Omniselector** | ⏳ Sviluppo | Selezione e validazione dati |
-| **💦 Amalia allenati** | 🎉 Easter Egg | Funzionalità speciale |
+| **⚡ OmniPD Calculator** | ⏳ Sviluppo | Modello potenza-durata con curve CP/W'/Pmax |
+| **🎯 Omniselector** | ⏳ Sviluppo (offline) | Selezione e validazione dati |
+| **💦 DA AGG** | 🎉 EE | FUT |
 
 ---
 
