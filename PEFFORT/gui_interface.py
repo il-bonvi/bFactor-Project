@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Andrea Bonvicin
+# Released under the MIT License (see LICENSE file for details)
+
 """
 GUI INTERFACE - Interfaccia grafica, temi e styling
 Contiene: EffortAnalyzer class, TEMI, CSS styling, gestione UI

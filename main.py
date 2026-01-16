@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Andrea Bonvicin
+# Released under the MIT License (see LICENSE file for details)
+
 """
 MAIN.PY - Launcher principale per bFactor Performance Suite
 Punto di ingresso per accedere a tutti i moduli della suite

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Andrea Bonvicin
+# Released under the MIT License (see LICENSE file for details)
+
 """
 OmniPD Standalone Launcher
 Permette l'esecuzione diretta: python omniPD_calculator/main_omnipd.py

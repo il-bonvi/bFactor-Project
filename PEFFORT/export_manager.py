@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Andrea Bonvicin
+# Released under the MIT License (see LICENSE file for details)
+
 """
 EXPORT MANAGER - Gestione esportazione PDF e generazione grafici
 Contiene: create_pdf_report, plot_unified_html, rendering plotly

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Andrea Bonvicin
+# Released under the MIT License (see LICENSE file for details)
+
 """
 CORE ENGINE - Logica pura per analisi efforts e sprints
 Contiene: parsing FIT, calcoli VAM, filtraggio, analisi sprint
