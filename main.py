@@ -90,17 +90,12 @@ class BfactorLauncher(QWidget):
 
         # --- PULSANTE 4: NUOVA FUNZIONALITÀ ---
         self.btn_nuovo = self.create_main_button(
-            "💦 MICHELE BBBERASI album fotografico",      # Titolo
-            "Foto molto hot, tenere lontano dalle atlete", # Sottotitolo
+            "💦 Amalia allenati",      # Titolo
+            "Fa allenare Amalia", # Sottotitolo
             "#ea580c"                    # Colore (Arancione in questo caso)
         )
         self.btn_nuovo.clicked.connect(self.show_in_development)
         grid_main.addWidget(self.btn_nuovo, 1, 1) # <--- Riga 1, Colonna 1
-
-        # Placeholder per simmetria
-        placeholder = QFrame()
-        placeholder.setStyleSheet("background: transparent;")
-        grid_main.addWidget(placeholder, 1, 1)
 
         main_layout.addLayout(grid_main)
         main_layout.addStretch()
@@ -193,9 +188,9 @@ class BfactorLauncher(QWidget):
         """Mostra un messaggio di avviso per i moduli in sviluppo"""
         QMessageBox.information(
             self,
-            "In fase di sviluppo",
-            "Questo modulo è attualmente in fase di sviluppo.\n\n"
-            "Torna presto per gli aggiornamenti!",
+            "UOOOPS NON FUNZ",
+            "Amalia non vuole allenarsi.\n\n"
+            "Riprova un altro giorno",
             QMessageBox.StandardButton.Ok
         )
 
