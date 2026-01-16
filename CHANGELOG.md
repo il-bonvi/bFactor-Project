@@ -1,19 +1,127 @@
-#!/usr/bin/env python3
-"""
-CHANGELOG - Modifiche Effettuate al Progetto
-============================================
+# CHANGELOG - bFactor Performance Suite
 
-Data: 16 Gennaio 2026
-Versione: 1.0 - Refactoring in Suite Modulare
+**Storico completo delle versioni e modifiche effettuate.**
 
-RIEPILOGO
----------
-Trasformazione completa del progetto da singola applicazione standalone
-a suite modulare professionale con launcher centralizzato.
+---
 
+## Versione 0.2 - OmniPD Integration & Easter Egg
 
-📝 MODIFICHE DETTAGLIATE
-========================
+**Data Release**: 16 Gennaio 2026  
+**Status**: ✅ Stabile  
+**Scope**: Enhancement modulo OmniPD, easter egg, miglioramenti launcher
+
+### Nuove Funzionalità
+
+#### OmniPD Calculator - Integrazione nel Launcher ⚡
+- **open_omnipd()** method implementato nel BfactorLauncher
+- Gestione intelligente di finestre (evita duplicazione)
+- Apertura in modalità massimizzata
+- Stessi pattern di PEFFORT Analyzer
+
+#### Easter Egg "Amalia allenati" 💦
+- Nuovo pulsante nel launcher (4° pulsante)
+- Messaggio divertente: "UOOOPS NON FUNZ"
+- Testo: "Amalia non vuole allenarsi. Riprova un altro giorno"
+- Condivide handler con Omniselector (show_in_development)
+
+### Modifiche Dettagliate
+
+#### main.py (root)
+
+**Aggiunte:**
+- `from omniPD_calculator import OmniPDAnalyzer`
+- `self.omnipd_window = None` nel __init__
+- Pulsante "💦 Amalia allenati" (colore arancione #ea580c)
+- Metodo `open_omnipd()` per apertura massimizzata
+- Collegamento `btn_omnipd.clicked.connect(self.open_omnipd)`
+
+#### Documentation - README.md
+- ✅ Completamente riscritto
+- Aggiunto numero versione (0.2)
+- Documentazione completa OmniPD Analyzer
+- Utilizzo programmatico di OmniPD
+- Tabella status moduli (operativo, sviluppo, easter egg)
+
+#### VERSION.md
+- ✨ File creato per tracciamento versioni
+- Changelog dettagliato v0.2 e v1.0
+- Roadmap versioni future
+- Tabella status moduli
+
+### Launcher - Stato Pulsanti
+
+| Pulsante | Status | Colore | Funzione |
+|----------|--------|--------|----------|
+| 📈 PEFFORT Analyzer | ✅ Operativo | Verde (#16a34a) | open_peffort() |
+| 🎯 Omniselector | ⏳ Sviluppo | Blu (#2563eb) | show_in_development() |
+| ⚡ OmniPD Calculator | ✅ Operativo | Viola (#7c3aed) | open_omnipd() |
+| 💦 Amalia allenati | 🎉 Easter Egg | Arancione (#ea580c) | show_in_development() |
+
+### Test Effettuati
+
+✅ Syntax check su main.py  
+✅ Import OmniPDAnalyzer verificato  
+✅ Finestra OmniPD si apre massimizzata  
+✅ Click multipli non creano duplicati  
+✅ Easter egg mostra messaggio corretto  
+
+### Breaking Changes
+
+❌ Nessuno - versione backwards compatible con v1.0
+
+---
+
+## Versione 1.0 - Initial Modular Suite (Base Release)
+
+**Data Release**: 16 Gennaio 2026  
+**Status**: ✅ Stabile  
+**Scope**: Trasformazione da app singola a suite modulare
+
+### RIEPILOGO
+- Trasformazione da applicazione singola a suite modulare
+- Launcher centralizzato con 3 pulsanti principali
+- PEFFORT Analyzer integrato e operativo
+- OmniPD Calculator strutturato e pronto
+- Tema Forest Green centralizzato
+- Package structure completa
+
+### File Creati
+- ✨ __init__.py (root e PEFFORT/)
+- ✨ STRUTTURA_PROGETTO.md
+- ✨ REFACTORING_SUMMARY.md
+- ✨ README.md
+
+### File Modificati
+- 📝 main.py (root) - Completamente riscritto
+- 📝 PEFFORT/gui_interface.py - Import relativi
+- 📝 PEFFORT/export_manager.py - Import relativi
+- 📝 PEFFORT/main.py - Rimosso if __name__
+
+### Struttura Risultante
+```
+bFactor-Project/
+├── __init__.py (✨ NEW)
+├── main.py (✨ RINNOVATO - Launcher)
+├── README.md (✨ NEW)
+│
+└── PEFFORT/
+    ├── __init__.py (✨ NEW)
+    ├── main.py (✨ AGGIORNATO)
+    ├── core_engine.py (✅ STABILE)
+    ├── gui_interface.py (✨ AGGIORNATO)
+    └── export_manager.py (✨ AGGIORNATO)
+```
+
+### Test Effettuati
+✅ Sintassi Python verificata
+✅ Import package verificati
+✅ EffortAnalyzer importabile
+✅ Tema Forest Green applicato
+✅ Launcher avviabile
+
+---
+
+## Archivio Modifiche Dettagliate
 
 1. FILE CREATI
 --------------
@@ -42,7 +150,15 @@ a suite modulare professionale con launcher centralizzato.
 ------------------
 
    📝 main.py (root)
-      Cambiamenti:
+      Cambiamenti v0.2:
+      - ✅ Aggiunto import: from omniPD_calculator import OmniPDAnalyzer
+      - ✨ Aggiunto pulsante "💦 Amalia allenati" (easter egg)
+      - ✅ Aggiunto self.omnipd_window = None per gestione finestra OmniPD
+      - ✨ Implementato metodo open_omnipd() con gestione finestra
+      - 🔗 Collegato btn_omnipd.clicked.connect(self.open_omnipd)
+      - 📝 Aggiunto messaggio "UOOOPS NON FUNZ" con testo easter egg
+      
+      Cambiamenti originali (v1.0):
       - ❌ Rimosso import assoluto: from gui_interface import ...
       - ✅ Aggiunto import dal package: from PEFFORT.gui_interface import ...
       - 🎨 RISCRITTO COMPLETAMENTE

@@ -78,10 +78,10 @@ class BfactorLauncher(QWidget):
         self.btn_omnipd.clicked.connect(self.open_omnipd)
         grid_main.addWidget(self.btn_omnipd, 1, 0)
 
-        # --- PULSANTE 4: NUOVA FUNZIONALITÀ ---
+        # --- PULSANTE 4: ALTRO ---
         self.btn_nuovo = self.create_main_button(
-            "💦 Amalia allenati",
-            "Fa allenare Amalia",
+            "Prossimo",
+            "Prossimo strumento in sviluppo",
             "#ea580c"
         )
         self.btn_nuovo.clicked.connect(self.show_in_development)
@@ -143,7 +143,7 @@ class BfactorLauncher(QWidget):
         QMessageBox.information(
             self,
             "UOOOPS NON FUNZ",
-            "Amalia non vuole allenarsi.\n\nRiprova un altro giorno",
+            "Mona. Non c'è niente",
             QMessageBox.StandardButton.Ok
         )
 
