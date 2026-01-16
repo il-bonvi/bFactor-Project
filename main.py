@@ -11,7 +11,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont
 
-from PEFFORT.gui_interface import EffortAnalyzer, get_style
+from PEFFORT.gui_interface import EffortAnalyzer
+from shared.styles import get_style
 
 
 # =====================
