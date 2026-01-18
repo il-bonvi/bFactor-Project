@@ -415,7 +415,7 @@ class OmniPDAnalyzer(QWidget):
             A = result['A']
 
             # Aggiornamento Label
-            self.lbl_cp.setText(f"CP: {CP:.2f} W")
+            self.lbl_cp.setText(f"CP: {CP:.0f} W")
             self.lbl_wprime.setText(f"W': {W_prime:.0f} J")
             self.lbl_pmax.setText(f"Pmax: {Pmax:.0f} W")
             self.lbl_a.setText(f"A: {A:.2f}")
