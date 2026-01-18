@@ -169,19 +169,28 @@ class OmniPDAnalyzer(QWidget):
 
         # CONVERTITORE
         self.conv_box = QFrame()
-        self.conv_box.setStyleSheet("background-color: #0b2e24; border: 1px solid #16a34a; border-radius: 10px; padding: 5px;")
+        self.conv_box.setObjectName("converter_box")
         conv_l = QVBoxLayout(self.conv_box)
-        conv_l.addWidget(QLabel("⚡ Quick Converter"))
-        
+        conv_l.setContentsMargins(12, 10, 12, 10)
+        conv_l.setSpacing(8)
+        # Titolo converter
+        self.conv_title = QLabel("⚡ Quick Converter")
+        self.conv_title.setAlignment(Qt.AlignCenter)
+        self.conv_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #4ade80;") ##<<<--- DA METTERE COLORE TEMA!!!!
+        conv_l.addWidget(self.conv_title)
+        # Input/Output layout
         input_h = QHBoxLayout()
+        input_h.setSpacing(10)
         self.min_in = QLineEdit()
         self.min_in.setPlaceholderText("Minuti")
+        self.min_in.setMinimumHeight(32)
         self.min_in.textChanged.connect(self.convert_time)
         self.sec_out = QLabel("= 0 s")
-        self.sec_out.setStyleSheet("font-weight: bold; color: white; font-size: 14px;")
-        
-        input_h.addWidget(self.min_in)
-        input_h.addWidget(self.sec_out)
+        self.sec_out.setAlignment(Qt.AlignCenter)
+        self.sec_out.setMinimumWidth(80)
+        self.sec_out.setStyleSheet("font-weight: bold; color: white; font-size: 14px; padding: 6px;")
+        input_h.addWidget(self.min_in, 1)
+        input_h.addWidget(self.sec_out, 1)
         conv_l.addLayout(input_h)
         self.sidebar.addWidget(self.conv_box)
 
