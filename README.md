@@ -51,7 +51,7 @@ Assicurati di avere Python 3.10+ installato con le librerie necessarie (requirem
 
 ### 1. Clona la repository
 ```bash
-git clone [https://github.com/il-bonvi/bFactor-Project.git]
+git clone https://github.com/il-bonvi/bFactor-Project.git
 cd bFactor-Project
 ```
 
