@@ -10,3 +10,6 @@ env/
 # File di sistema e IDE
 .vscode/
 .DS_Store
+
+# Script batch di Windows
+*.bat
