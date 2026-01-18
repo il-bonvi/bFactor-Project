@@ -10,7 +10,7 @@
 
 > **Advanced Cycling Performance Analysis Suite**
 
-**bFactor Project** è una suite software desktop sviluppata per allenatori, data analist e scienziati dello sport. Combina ldiversi strumenti per il monitoraggio delle sessioni e di periodi di allenamento.
+**bFactor Project** è una suite software desktop sviluppata per allenatori, data analist e scienziati dello sport. Combina diversi strumenti per il monitoraggio delle sessioni e di periodi di allenamento.
 
 ---
 
