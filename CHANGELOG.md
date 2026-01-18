@@ -71,7 +71,7 @@
 
 ---
 
-## Versione 1.0 - Initial Modular Suite (Base Release)
+## Versione 0.1 - Initial Modular Suite (Base Release)
 
 **Data Release**: 16 Gennaio 2026  
 **Status**: ✅ Stabile  
