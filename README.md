@@ -22,12 +22,12 @@ Il software si divide in diversi moduli principali accessibili da un launcher un
 Analisi automatizzata dei file di allenamento provenienti dai ciclocomputer.
 * **Parsing File FIT:** Importazione diretta e pulizia dati.
 * **Rilevamento Automatico:** Algoritmi per identificare sprint ed "efforts" sostenuti sopra specifiche soglie fisiologiche.
-* **Zonal Analysis:** Classificazione degli sforzi basata su $CP$, $VO_2max$ e capacità anaerobica.
+* **Zonal Analysis:** Classificazione degli sforzi basata su $CP$.
 * **Reporting:** Generazione automatica di report PDF dettagliati con grafici interattivi (Plotly).
 
 ### 2. ⚡ OmniPD Calculator
 Modellazione avanzata della curva Potenza-Durata.
-* **Modello OmniPD:** Il modello OmniPD implementato è un modello unificato per descrivere l’intero profilo MMP, dagli sprint massimali agli sforzi di endurance prolungata. Integra Pmax, CP e W' in una formulazione fisiologicamente coerente, superando i limiti del modello CP classico alle durate brevi e molto lunghe. Introduce il concetto di W' efficace, che limita realisticamente l’espressione della riserva anaerobica nelle durate brevi e preserva W' come capacità fissa nel dominio severo. Per durate >30 min incorpora un termine log-lineare di fatica a lungo termine, migliorando l’accuratezza su dati MMP real-world. Il risultato è un modello continuo, interpretabile e robusto, adatto sia all’analisi scientifica sia all’applicazione pratica nel training e nel performance profiling. **https://pubmed.ncbi.nlm.nih.gov/32131692/**
+* **Modello OmniPD:** Il modello OmniPD implementato è un modello unificato per descrivere l’intero profilo MMP, dagli sprint massimali agli sforzi di endurance prolungata. Integra Pmax, CP e W' in una formulazione fisiologicamente coerente, superando i limiti del modello CP classico alle durate brevi e molto lunghe. Introduce il concetto di W' efficace, che limita realisticamente l’espressione della riserva anaerobica nelle durate brevi e preserva W' come capacità fissa nel dominio severo. Per durate >30 min incorpora un termine log-lineare di fatica a lungo termine, migliorando l’accuratezza su dati MMP real-world. Il risultato è un modello continuo, interpretabile e robusto, adatto sia all’analisi scientifica sia all’applicazione pratica nel training e nel performance profiling. https://pubmed.ncbi.nlm.nih.gov/32131692/
 
 ### 3. 🚧 Work in Proggress
 
