@@ -17,8 +17,7 @@ from PySide6.QtWidgets import (
     QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView, QComboBox
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import Qt, QUrl, QBuffer, QIODevice, QRect
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QUrl, QBuffer, QIODevice, QRect
 import tempfile
 import webbrowser
 import base64

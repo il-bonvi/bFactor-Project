@@ -8,17 +8,14 @@
 """
 OmniPD GUI - Interfaccia grafica completa
 """
-import sys
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from pathlib import Path
-from scipy.optimize import curve_fit
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QPushButton, QFrame, QScrollArea,
-                             QApplication, QMessageBox, QTabWidget, QFileDialog,
+                             QMessageBox, QTabWidget, QFileDialog,
                              QDialog, QComboBox, QDialogButtonBox, QGridLayout)
 from PySide6.QtCore import Qt
 from matplotlib.figure import Figure

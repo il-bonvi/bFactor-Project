@@ -11,12 +11,11 @@ Punto di ingresso per accedere a tutti i moduli della suite
 """
 
 import sys
-import os
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QPushButton, 
-    QLabel, QGridLayout, QFrame, QMessageBox, QComboBox, QHBoxLayout
+    QLabel, QGridLayout, QMessageBox, QComboBox, QHBoxLayout
 )
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
 from PEFFORT.gui_interface import EffortAnalyzer
