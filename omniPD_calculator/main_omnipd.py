@@ -7,7 +7,7 @@
 
 """
 OmniPD Standalone Launcher
-Permette l'esecuzione diretta: python omniPD_calculator/main_omnipd.py
+Permette l'esecuzione diretta: python omniPD_calculator/main_omniPD.py
 """
 import sys
 from pathlib import Path
@@ -31,10 +31,10 @@ from PySide6.QtWidgets import QApplication
 
 # Import della GUI - se viene eseguito come script, usa import assoluto
 try:
-    from .gui_omnipd import OmniPDAnalyzer
+    from .gui_omniPD import OmniPDAnalyzer
 except ImportError:
     # Fallback per esecuzione diretta come script
-    from gui_omnipd import OmniPDAnalyzer
+    from gui_omniPD import OmniPDAnalyzer
 
 
 if __name__ == "__main__":
