@@ -40,11 +40,14 @@ from shared.styles import TEMI, get_style
 # GUI PRINCIPALE
 # =====================
 class EffortAnalyzer(QWidget):
-    def __init__(self):
+    def __init__(self, theme=None):
         super().__init__()
         self.setWindowTitle("EFFORT ANALYZER")
         self.setMinimumSize(1280, 850)
-        self.setStyleSheet(get_style("Forest Green"))
+        if theme is None:
+            theme = "Forest Green"
+        self.current_theme = theme
+        self.setStyleSheet(get_style(theme))
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -64,6 +67,7 @@ class EffortAnalyzer(QWidget):
 
         self.theme_selector = QComboBox()
         self.theme_selector.addItems(list(TEMI.keys()))
+        self.theme_selector.setCurrentText(self.current_theme)
         self.theme_selector.currentTextChanged.connect(self.apply_selected_theme)
         side_layout.addWidget(self.theme_selector)
 
@@ -203,6 +207,7 @@ class EffortAnalyzer(QWidget):
 
     def apply_selected_theme(self, tema_nome):
         """Cambia il tema dell'interfaccia"""
+        self.current_theme = tema_nome
         self.setStyleSheet(get_style(tema_nome))
         self.status_label.setText(f"Tema: {tema_nome}")
 

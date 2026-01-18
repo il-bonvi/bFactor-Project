@@ -14,14 +14,14 @@ import sys
 import os
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QPushButton, 
-    QLabel, QGridLayout, QFrame, QMessageBox
+    QLabel, QGridLayout, QFrame, QMessageBox, QComboBox
 )
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont
 
 from PEFFORT.gui_interface import EffortAnalyzer
 from omniPD_calculator import OmniPDAnalyzer
-from shared.styles import get_style
+from shared.styles import get_style, TEMI
 
 
 class BfactorLauncher(QWidget):
@@ -29,7 +29,8 @@ class BfactorLauncher(QWidget):
         super().__init__()
         self.setWindowTitle("bFactor Project")
         self.setMinimumSize(1000, 700)
-        self.setStyleSheet(get_style("Forest Green"))
+        self.current_theme = "Forest Green"
+        self.setStyleSheet(get_style(self.current_theme))
         
         self.peffort_window = None
         self.omnipd_window = None # Riferimento per OmniPD
@@ -47,6 +48,19 @@ class BfactorLauncher(QWidget):
         header.setAlignment(Qt.AlignCenter)
         header.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
         main_layout.addWidget(header)
+
+        # THEME SELECTOR
+        theme_layout = QVBoxLayout()
+        theme_label = QLabel("Tema:")
+        theme_label.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        self.theme_selector = QComboBox()
+        self.theme_selector.addItems(list(TEMI.keys()))
+        self.theme_selector.setCurrentText(self.current_theme)
+        self.theme_selector.currentTextChanged.connect(self.apply_theme)
+        self.theme_selector.setMaximumWidth(300)
+        theme_layout.addWidget(theme_label)
+        theme_layout.addWidget(self.theme_selector)
+        main_layout.addLayout(theme_layout)
 
         subtitle = QLabel("Seleziona uno strumento per iniziare")
         subtitle.setAlignment(Qt.AlignCenter)
@@ -107,7 +121,7 @@ class BfactorLauncher(QWidget):
             self.peffort_window.raise_()
             self.peffort_window.activateWindow()
         else:
-            self.peffort_window = EffortAnalyzer()
+            self.peffort_window = EffortAnalyzer(theme=self.current_theme)
             self.peffort_window.showMaximized()
 
     def open_omnipd(self):
@@ -116,8 +130,13 @@ class BfactorLauncher(QWidget):
             self.omnipd_window.raise_()
             self.omnipd_window.activateWindow()
         else:
-            self.omnipd_window = OmniPDAnalyzer()
+            self.omnipd_window = OmniPDAnalyzer(theme=self.current_theme)
             self.omnipd_window.showMaximized()
+
+    def apply_theme(self, tema_nome):
+        """Applica il tema selezionato al launcher e lo salva"""
+        self.current_theme = tema_nome
+        self.setStyleSheet(get_style(tema_nome))
 
     def create_main_button(self, title, description, accent_color):
         button = QPushButton(f"{title}\n\n{description}")

@@ -36,8 +36,10 @@ except ImportError:
                              _format_time_label, TCPMAX, calculate_omnipd_model)
 
 try:
-    from shared.styles import get_style
+    from shared.styles import get_style, TEMI
 except ImportError:
+    from shared.styles import get_style
+    TEMI = {"Forest Green": {}}
     def get_style(x):
         return "background-color: #061f17; color: white;"
 
@@ -94,11 +96,14 @@ class MmpRow(QHBoxLayout):
 
 
 class OmniPDAnalyzer(QWidget):
-    def __init__(self):
+    def __init__(self, theme=None):
         super().__init__()
         self.setWindowTitle("OmniPD - Analyzer")
         self.setMinimumSize(1200, 800)
-        self.setStyleSheet(get_style("Forest Green"))
+        if theme is None:
+            theme = "Forest Green"
+        self.current_theme = theme
+        self.setStyleSheet(get_style(theme))
         
         self.rows = []
         self.params = None
@@ -132,6 +137,13 @@ class OmniPDAnalyzer(QWidget):
         lbl_title = QLabel("OMNIPD INPUT")
         lbl_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #4ade80;")
         self.sidebar.addWidget(lbl_title)
+
+        # Theme Selector
+        self.theme_selector = QComboBox()
+        self.theme_selector.addItems(list(TEMI.keys()))
+        self.theme_selector.setCurrentText(self.current_theme)
+        self.theme_selector.currentTextChanged.connect(self.apply_selected_theme)
+        self.sidebar.addWidget(self.theme_selector)
 
         self.info_lbl = QLabel("One must be sprint power (best 1-10s)\nMinimum 4 points!!")
         self.info_lbl.setStyleSheet("color: #94a3b8; font-style: italic; font-size: 11px;")
@@ -306,6 +318,11 @@ class OmniPDAnalyzer(QWidget):
         for s in ax.spines.values(): 
             s.set_color('#334155')
         ax.grid(True, alpha=0.1)
+
+    def apply_selected_theme(self, tema_nome):
+        """Cambia il tema dell'interfaccia"""
+        self.current_theme = tema_nome
+        self.setStyleSheet(get_style(tema_nome))
 
     def add_empty_row(self, t="", w=""):
         row = MmpRow(t, w)
