@@ -12,7 +12,7 @@ Nota: Questo file è opzionale. Per il launcher usa root/main.py
 
 import sys
 from PySide6.QtWidgets import QApplication
-from .gui_interface import EffortAnalyzer
+from .gui_PEFFORT import EffortAnalyzer
 
 
 def launch_peffort():

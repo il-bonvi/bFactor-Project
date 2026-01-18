@@ -25,11 +25,11 @@ from matplotlib.ticker import FixedLocator, FuncFormatter
 
 # Gestione import relativi/assoluti per compatibility
 try:
-    from .omnipd_core import (ompd_power, ompd_power_short, w_eff, 
+    from .core_omniPD import (ompd_power, ompd_power_short, w_eff, 
                               _format_time_label, TCPMAX, calculate_omnipd_model)
 except ImportError:
     # Fallback per esecuzione diretta
-    from omnipd_core import (ompd_power, ompd_power_short, w_eff, 
+    from omniPD_calculator.core_omniPD import (ompd_power, ompd_power_short, w_eff, 
                              _format_time_label, TCPMAX, calculate_omnipd_model)
 
 try:

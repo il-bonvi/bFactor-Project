@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
-from PEFFORT.gui_interface import EffortAnalyzer
+from PEFFORT import EffortAnalyzer
 from omniPD_calculator import OmniPDAnalyzer
 from shared.styles import get_style, TEMI
 

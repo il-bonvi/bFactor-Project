@@ -24,8 +24,8 @@ import base64
 import sys
 from pathlib import Path
 
-from .core_engine import format_time_hhmmss
-from .export_manager import create_pdf_report, plot_unified_html
+from .engine_PEFFORT import format_time_hhmmss
+from .exporter_PEFFORT import create_pdf_report, plot_unified_html
 
 # Aggiungi root al path per import shared
 root_dir = str(Path(__file__).parent.parent)
@@ -225,7 +225,7 @@ class EffortAnalyzer(QWidget):
             return
         
         try:
-            from .core_engine import parse_fit, create_efforts, merge_extend, split_included, detect_sprints
+            from .engine_PEFFORT import parse_fit, create_efforts, merge_extend, split_included, detect_sprints
             
             self.status_label.setText("Analisi in corso...")
             QApplication.processEvents()

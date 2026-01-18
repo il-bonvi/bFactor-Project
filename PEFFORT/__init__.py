@@ -8,3 +8,7 @@
 """
 PEFFORT (Project Effort) Module - Analisi avanzata di file FIT
 """
+
+from .gui_PEFFORT import EffortAnalyzer
+
+__all__ = ['EffortAnalyzer']
