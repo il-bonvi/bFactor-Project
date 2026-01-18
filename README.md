@@ -10,15 +10,13 @@
 
 > **Advanced Cycling Performance Analysis Suite**
 
-**bFactor Project** è una suite software desktop sviluppata per allenatori, scienziati dello sport e atleti d'élite. Combina l'analisi dettagliata dei file di allenamento (`.fit`) con modelli matematici avanzati di potenza-durata (OmniPD), offrendo una visione completa sulle capacità fisiologiche dell'atleta.
-
-Sviluppato da **Andrea Bonvicin** (MSc Student, Univr, Endurance & Strenght Coach), il progetto colma il divario tra la teoria scientifica ($CP$, $W'$, $P_{max}$) e l'applicazione pratica sul campo.
+**bFactor Project** è una suite software desktop sviluppata per allenatori, data analist e scienziati dello sport. Combina ldiversi strumenti per il monitoraggio delle sessioni e di periodi di allenamento.
 
 ---
 
 ## 🌟 Funzionalità Principali
 
-Il software si divide in due moduli principali accessibili da un launcher unificato:
+Il software si divide in diversi moduli principali accessibili da un launcher unificato:
 
 ### 1. 📊 PEFFORT Analyzer (Performance/Effort)
 Analisi automatizzata dei file di allenamento provenienti dai ciclocomputer.
@@ -30,6 +28,8 @@ Analisi automatizzata dei file di allenamento provenienti dai ciclocomputer.
 ### 2. ⚡ OmniPD Calculator
 Modellazione avanzata della curva Potenza-Durata.
 * **Modello OmniPD:** Il modello OmniPD implementato è un modello unificato per descrivere l’intero profilo MMP, dagli sprint massimali agli sforzi di endurance prolungata. Integra Pmax, CP e W' in una formulazione fisiologicamente coerente, superando i limiti del modello CP classico alle durate brevi e molto lunghe. Introduce il concetto di W' efficace, che limita realisticamente l’espressione della riserva anaerobica nelle durate brevi e preserva W' come capacità fissa nel dominio severo. Per durate >30 min incorpora un termine log-lineare di fatica a lungo termine, migliorando l’accuratezza su dati MMP real-world. Il risultato è un modello continuo, interpretabile e robusto, adatto sia all’analisi scientifica sia all’applicazione pratica nel training e nel performance profiling. **https://pubmed.ncbi.nlm.nih.gov/32131692/**
+
+### 3. 🚧 Work in Proggress
 
 ---
 
@@ -70,10 +70,13 @@ python main.py
 
 | **Andrea Bonvicin** | |
 | :--- | :--- |
-| 🎓 **Qualifiche** | MSc Student in Physical Performance Science @ [Univr](https://www.univr.it) |
-| 🚴 **Expertise** | Performance Coach | Mountain Sports & Cycling Specialist |
-| 📍 **Sede** | Trento, Italia |
-| 📫 **Contatti** | [Inserisci qui il tuo link LinkedIn o Email] |
+| 🎓 **Education** | BSc in Sport and Exercise Science · MSc Student in Physical Performance Science |
+| 🏋️‍♂️🚴 **Expertise** | Sport Scientist & Performance Coach · Endurance and Strength Training |
+| ⛰️ **Specialization** | Cycling & Endurance Sports|
+| 📍 **Location** | Trento, Italy |
+| 📫 **Contact** | https://linktr.ee/bonvicin.coaching |
+
+
 
 ---
 
