@@ -14,7 +14,7 @@ import sys
 import os
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QPushButton, 
-    QLabel, QGridLayout, QFrame, QMessageBox, QComboBox
+    QLabel, QGridLayout, QFrame, QMessageBox, QComboBox, QHBoxLayout
 )
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont
@@ -33,7 +33,7 @@ class BfactorLauncher(QWidget):
         self.setStyleSheet(get_style(self.current_theme))
         
         self.peffort_window = None
-        self.omnipd_window = None # Riferimento per OmniPD
+        self.omnipd_window = None 
         
         self.setup_ui()
 
@@ -49,23 +49,44 @@ class BfactorLauncher(QWidget):
         header.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
         main_layout.addWidget(header)
 
-        # THEME SELECTOR
-        theme_layout = QVBoxLayout()
-        theme_label = QLabel("Tema:")
-        theme_label.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        # THEME SELECTOR (minimal, top-right)
+        theme_layout = QHBoxLayout()
+        theme_layout.setAlignment(Qt.AlignRight)
+        theme_label = QLabel("Tema")
+        theme_label.setStyleSheet("color: #64748b; font-size: 11px;")
         self.theme_selector = QComboBox()
         self.theme_selector.addItems(list(TEMI.keys()))
         self.theme_selector.setCurrentText(self.current_theme)
         self.theme_selector.currentTextChanged.connect(self.apply_theme)
-        self.theme_selector.setMaximumWidth(300)
+        self.theme_selector.setFixedHeight(34)
+        self.theme_selector.setMaximumWidth(220)
+        self.theme_selector.setToolTip("Seleziona tema UI")
+        self.theme_selector.setStyleSheet("""
+        QComboBox {
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        QComboBox:hover {
+            border: 1px solid #4ade80;
+        }
+        QComboBox::drop-down {
+            border: none;
+            width: 20px;
+        }
+        QComboBox::down-arrow {
+            image: none;
+        }
+        QComboBox QAbstractItemView {
+            border: 1px solid #1e293b;
+        }
+        """)
+
         theme_layout.addWidget(theme_label)
         theme_layout.addWidget(self.theme_selector)
-        main_layout.addLayout(theme_layout)
 
-        subtitle = QLabel("Seleziona uno strumento per iniziare")
-        subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet("color: #94a3b8; font-size: 14px; margin-bottom: 20px;")
-        main_layout.addWidget(subtitle)
+        main_layout.addLayout(theme_layout)
 
         # GRIGLIA PULSANTI
         grid_main = QGridLayout()
