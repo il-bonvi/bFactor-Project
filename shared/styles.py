@@ -42,8 +42,8 @@ TEMI = {
         "sidebar": "#111111", 
         "accent": "#ffed00", 
         "btn": "#ffed00", 
-        "input": "#222222", 
-        "text": "#ffffff" 
+        "input": "#FFFFFF", 
+        "text": "#111111" 
     },
     "***ABCoaching": {
         "bg": "#f2f7f2", 

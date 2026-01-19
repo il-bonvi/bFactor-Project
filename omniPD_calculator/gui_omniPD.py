@@ -136,11 +136,11 @@ class OmniPDAnalyzer(QWidget):
         self.sidebar.addWidget(lbl_title)
 
         # Theme Selector
-        self.theme_selector = QComboBox()
+        '''self.theme_selector = QComboBox()
         self.theme_selector.addItems(list(TEMI.keys()))
         self.theme_selector.setCurrentText(self.current_theme)
         self.theme_selector.currentTextChanged.connect(self.apply_selected_theme)
-        self.sidebar.addWidget(self.theme_selector)
+        self.sidebar.addWidget(self.theme_selector)'''
 
         self.info_lbl = QLabel("One must be sprint power (best 1-10s)\nMinimum 4 points!!")
         self.info_lbl.setStyleSheet("color: #94a3b8; font-style: italic; font-size: 11px;")
@@ -232,6 +232,8 @@ class OmniPDAnalyzer(QWidget):
         self.sidebar.addWidget(self.res_box)
 
         # --- AREA DESTRA (TabWidget) ---
+        right_layout = QVBoxLayout()
+
         self.tab_widget = QTabWidget()
         self.tab_widget.setStyleSheet("""
             QTabWidget::pane {
@@ -259,7 +261,28 @@ class OmniPDAnalyzer(QWidget):
         self.create_weff_tab()
 
         self.main_layout.addLayout(self.sidebar, 1)
-        self.main_layout.addWidget(self.tab_widget, 3)
+        #self.main_layout.addWidget(self.tab_widget, 3)
+        self.main_layout.addLayout(self.sidebar, 1)
+        self.main_layout.addLayout(right_layout, 3)
+        
+        right_layout.addWidget(self.tab_widget)
+        # Theme Selector in basso a destra
+        theme_layout = QHBoxLayout()
+        theme_layout.addStretch()  # Spinge a destra
+        theme_label = QLabel("Theme:")
+        theme_label.setStyleSheet("font-size: 10px; color: #94a3b8;")
+        theme_layout.addWidget(theme_label)
+    
+        self.theme_selector = QComboBox()
+        self.theme_selector.addItems(list(TEMI.keys()))
+        self.theme_selector.setCurrentText(self.current_theme)
+        self.theme_selector.currentTextChanged.connect(self.apply_selected_theme)
+        self.theme_selector.setMaximumWidth(150)
+        self.theme_selector.setStyleSheet("font-size: 10px; padding: 5px;")
+        theme_layout.addWidget(self.theme_selector)
+    
+        right_layout.addLayout(theme_layout)
+
 
         self.load_initial_points()
 
@@ -329,6 +352,7 @@ class OmniPDAnalyzer(QWidget):
         """Cambia il tema dell'interfaccia"""
         self.current_theme = tema_nome
         self.setStyleSheet(get_style(tema_nome))
+        
 
     def add_empty_row(self, t="", w=""):
         row = MmpRow(t, w)
