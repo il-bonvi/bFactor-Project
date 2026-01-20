@@ -351,8 +351,7 @@ class OmniPDAnalyzer(QWidget):
     def apply_selected_theme(self, tema_nome):
         """Cambia il tema dell'interfaccia"""
         self.current_theme = tema_nome
-        self.setStyleSheet(get_style(tema_nome))
-        
+        self.setStyleSheet(get_style(tema_nome)) 
 
     def add_empty_row(self, t="", w=""):
         row = MmpRow(t, w)
