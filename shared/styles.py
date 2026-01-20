@@ -68,15 +68,27 @@ TEMI = {
         "btn_text": "#ffffff",
         "placeholder": "#354d90" #aggiunto (perchè?)
     },
+    "Comal Pro": { 
+        "bg": "#f9fbfc",          
+        "sidebar": "#d2e0fe",     
+        "accent": "#f736b8",     
+        "btn": "#0a178f",       
+        "input": "#ffffff", 
+        "text": "#0a178f",      
+        "border": "#324a8e",     
+        "btn_text": "#ffffff",
+        "secondary_accent": "#d96bc2"
+    },
     "ABCoaching": {   
-        "bg": "#f2f7f2",
-        "sidebar": "#dcece0",
-        "accent": "#2d6a4f",   
-        "btn": "#40916c",
-        "input": "#dbe4dd",
-        "text": "#1b4332",      
-        "border": "#b7e4c7",
-        "btn_text": "#ffffff"
+        "bg": "#e6f0e6",        
+        "sidebar": "#e5f0e4",     
+        "accent": "#417b2d",      
+        "btn": "#18413b",         
+        "input": "#dceddc",       
+        "text": "#18413b",       
+        "border": "#8bb0a1",     
+        "btn_text": "#ffffff",
+        "placeholder": "#8bb0a1"
     },
     "Giro Pink": {    
         "bg": "#fff0f5",         
