@@ -261,28 +261,33 @@ class OmniPDAnalyzer(QWidget):
         self.create_weff_tab()
 
         self.main_layout.addLayout(self.sidebar, 1)
-        #self.main_layout.addWidget(self.tab_widget, 3)
-        self.main_layout.addLayout(self.sidebar, 1)
         self.main_layout.addLayout(right_layout, 3)
         
-        right_layout.addWidget(self.tab_widget)
-        # Theme Selector in basso a destra
+        # Theme Selector in alto a destra
         theme_layout = QHBoxLayout()
-        theme_layout.addStretch()  # Spinge a destra
-        theme_label = QLabel("Theme:")
-        theme_label.setStyleSheet("font-size: 10px; color: #94a3b8;")
-        theme_layout.addWidget(theme_label)
+        theme_layout.addStretch()  # Spinge il selector a destra
     
         self.theme_selector = QComboBox()
         self.theme_selector.addItems(list(TEMI.keys()))
         self.theme_selector.setCurrentText(self.current_theme)
         self.theme_selector.currentTextChanged.connect(self.apply_selected_theme)
-        self.theme_selector.setMaximumWidth(150)
-        self.theme_selector.setStyleSheet("font-size: 10px; padding: 5px;")
+        self.theme_selector.setMaximumWidth(90)
+        self.theme_selector.setFixedHeight(10) 
+        self.theme_selector.setStyleSheet("""
+            QComboBox {
+                font-size: 10px;
+                padding: 1px 4px;
+                min-height: 20px;
+                max-height: 20px;
+            }
+            QComboBox::drop-down {
+                width: 15px;
+            }
+        """)
         theme_layout.addWidget(self.theme_selector)
-    
+        
         right_layout.addLayout(theme_layout)
-
+        right_layout.addWidget(self.tab_widget)
 
         self.load_initial_points()
 
