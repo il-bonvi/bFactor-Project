@@ -32,7 +32,8 @@ class BfactorLauncher(QWidget):
         self.setStyleSheet(get_style(self.current_theme))
         
         self.peffort_window = None
-        self.omnipd_window = None 
+        self.omnipd_window = None
+        self.omniselector_window = None
         
         self.setup_ui()
 
@@ -106,7 +107,7 @@ class BfactorLauncher(QWidget):
             "Selezione e validazione dati\nIn fase di sviluppo",
             "#2563eb"
         )
-        self.btn_omniselector.clicked.connect(self.show_in_development)
+        self.btn_omniselector.clicked.connect(self.open_omniselector)
         grid_main.addWidget(self.btn_omniselector, 0, 1)
 
         # --- PULSANTE 3: OmniPD CALCULATOR ---
@@ -152,6 +153,16 @@ class BfactorLauncher(QWidget):
         else:
             self.omnipd_window = OmniPDAnalyzer(theme=self.current_theme)
             self.omnipd_window.showMaximized()
+
+    def open_omniselector(self):
+        """Apre la finestra Omniselector"""
+        if self.omniselector_window is not None and self.omniselector_window.isVisible():
+            self.omniselector_window.raise_()
+            self.omniselector_window.activateWindow()
+        else:
+            from omniselector import omniselector
+            self.omniselector_window = omniselector(theme=self.current_theme)
+            self.omniselector_window.showMaximized()
 
     def apply_theme(self, tema_nome):
         """Applica il tema selezionato al launcher e lo salva"""
