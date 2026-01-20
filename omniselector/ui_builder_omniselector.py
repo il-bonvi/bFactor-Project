@@ -11,7 +11,7 @@ Omniselector UI Builder - Funzioni per costruzione interfaccia grafica
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QPushButton, QFrame, QComboBox, QGridLayout,
-                             QTabWidget)
+                             QTabWidget, QScrollArea)
 from PySide6.QtCore import Qt
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
@@ -20,115 +20,220 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from .plotting_omniselector import format_plot
 
 try:
-    from shared.styles import TEMI
+    from shared.styles import TEMI, get_style
 except ImportError:
     TEMI = {"Forest Green": {}}
+    def get_style(x):
+        return "background-color: #061f17; color: white;"
 
 
 def create_sidebar_widgets(analyzer):
-    """
-    Crea tutti i widget della sidebar sinistra
-    
-    Args:
-        analyzer: istanza di OmniSelectorAnalyzer
-    """
+
     analyzer.sidebar = QVBoxLayout()
+    analyzer.sidebar.setSpacing(10)
     
     # Titolo
-    lbl_title = QLabel("OMNISELECTOR INPUT")
+    lbl_title = QLabel("OMNISELECTOR")
     analyzer.lbl_title = lbl_title
     analyzer.sidebar.addWidget(lbl_title)
 
-    # CONVERTITORE
-    _create_converter_widget(analyzer)
+    # SEZIONE DATI (Import)
+    _create_data_section(analyzer)
     
-    # FILTRI
-    _create_filters_widget(analyzer)
+    # SEZIONE FILTRI (con finestre temporali e convertitore)
+    _create_filters_section(analyzer)
 
-    # Bottoni
-    analyzer.btn_calc = QPushButton("⚙️ ELABORA MODELLO")
-    analyzer.btn_calc.clicked.connect(analyzer.run_calculation)
-    analyzer.sidebar.addWidget(analyzer.btn_calc)
+    # SEZIONE ELABORAZIONE
+    _create_processing_section(analyzer)
 
-    analyzer.btn_import = QPushButton("📁 IMPORT CSV")
+    # SEZIONE RISULTATI
+    _create_results_section(analyzer)
+    
+    analyzer.sidebar.addStretch()
+
+
+def _create_section(title, content_widget):
+    """Crea una sezione con titolo"""
+    section_frame = QFrame()
+    section_frame.setObjectName("section_frame")
+    section_layout = QVBoxLayout(section_frame)
+    section_layout.setContentsMargins(0, 0, 0, 0)
+    section_layout.setSpacing(5)
+    
+    # Header label
+    header_label = QLabel(title)
+    header_label.setObjectName("section_header")
+    
+    # Content frame
+    content_frame = QFrame()
+    content_frame.setObjectName("section_content")
+    content_layout = QVBoxLayout(content_frame)
+    content_layout.setContentsMargins(10, 10, 10, 10)
+    content_layout.addWidget(content_widget)
+    
+    section_layout.addWidget(header_label)
+    section_layout.addWidget(content_frame)
+    
+    return section_frame
+
+
+def _create_data_section(analyzer):
+    """Crea la sezione Import Dati"""
+    content = QWidget()
+    layout = QVBoxLayout(content)
+    layout.setSpacing(8)
+    
+    analyzer.btn_import = QPushButton("📁 Importa File CSV")
     analyzer.btn_import.clicked.connect(analyzer.import_file)
-    analyzer.sidebar.addWidget(analyzer.btn_import)
-
-    # Risultati
-    _create_results_widget(analyzer)
-
-
-def _create_converter_widget(analyzer):
-    """Crea il widget del convertitore tempo"""
-    analyzer.conv_box = QFrame()
-    analyzer.conv_box.setObjectName("converter_box")
-    conv_l = QVBoxLayout(analyzer.conv_box)
-    conv_l.setContentsMargins(12, 10, 12, 10)
-    conv_l.setSpacing(8)
+    layout.addWidget(analyzer.btn_import)
     
-    analyzer.conv_title = QLabel("⚡ Quick Converter")
-    analyzer.conv_title.setAlignment(Qt.AlignCenter)
-    conv_l.addWidget(analyzer.conv_title)
+    section = _create_section("📂 DATI", content)
+    analyzer.sidebar.addWidget(section)
+
+
+def _create_filters_section(analyzer):
+    """Crea la sezione Filtri con finestre temporali e convertitore integrato"""
+    content = QWidget()
+    layout = QVBoxLayout(content)
+    layout.setSpacing(10)
     
-    input_h = QHBoxLayout()
-    input_h.setSpacing(10)
+    # === FINESTRE TEMPORALI ===
+    windows_label = QLabel("⏱️ Finestre Temporali")
+    windows_label.setStyleSheet("font-weight: bold; font-size: 11px;")
+    layout.addWidget(windows_label)
+    
+    # Convertitore minuti->secondi con nota
+    conv_row = QHBoxLayout()
+    fast_conv_label = QLabel("fast conv")
+    fast_conv_label.setStyleSheet("color: #64748b; font-size: 9px; font-style: italic;")
+    conv_row.addWidget(fast_conv_label)
+    conv_row.addWidget(QLabel("Min:"))
     analyzer.min_in = QLineEdit()
-    analyzer.min_in.setPlaceholderText("Minuti")
-    analyzer.min_in.setMinimumHeight(32)
+    analyzer.min_in.setPlaceholderText("es. 5")
+    analyzer.min_in.setMaximumWidth(60)
     analyzer.min_in.textChanged.connect(analyzer.convert_time)
     analyzer.sec_out = QLabel("= 0 s")
-    analyzer.sec_out.setAlignment(Qt.AlignCenter)
-    analyzer.sec_out.setMinimumWidth(80)
-    input_h.addWidget(analyzer.min_in, 1)
-    input_h.addWidget(analyzer.sec_out, 1)
-    conv_l.addLayout(input_h)
-    analyzer.sidebar.addWidget(analyzer.conv_box)
-
-
-def _create_filters_widget(analyzer):
-    """Crea il widget dei filtri"""
-    analyzer.filter_box = QFrame()
-    filter_l = QVBoxLayout(analyzer.filter_box)
-    filter_l.setContentsMargins(12, 10, 12, 10)
-    filter_l.setSpacing(8)
+    conv_row.addWidget(analyzer.min_in)
+    conv_row.addWidget(analyzer.sec_out)
+    conv_row.addStretch()
+    layout.addLayout(conv_row)
     
-    analyzer.filter_title = QLabel("🎯 Filtri selezione")
-    analyzer.filter_title.setAlignment(Qt.AlignCenter)
-    filter_l.addWidget(analyzer.filter_title)
-
-    btn_windows = QPushButton("Imposta finestre")
-    btn_windows.clicked.connect(analyzer.open_time_windows_dialog)
-    filter_l.addWidget(btn_windows)
-
+    # Input finestre temporali (area scrollabile)
+    analyzer.time_windows_inputs = []
+    analyzer.time_windows_container = QWidget()
+    analyzer.time_windows_layout = QVBoxLayout(analyzer.time_windows_container)
+    analyzer.time_windows_layout.setSpacing(4)
+    
+    # Aggiungi 6 finestre di default con valori comuni
+    default_values = ["120", "240", "480", "900", "1800", "2700"]
+    for i, default_val in enumerate(default_values):
+        window_row = QHBoxLayout()
+        window_input = QLineEdit()
+        window_input.setPlaceholderText(f"Finestra {i+1} (s)")
+        window_input.setText(default_val)
+        window_row.addWidget(window_input)
+        analyzer.time_windows_layout.addLayout(window_row)
+        analyzer.time_windows_inputs.append(window_input)
+    
+    # Bottoni per gestire finestre
+    btn_row = QHBoxLayout()
+    btn_add = QPushButton("+ Aggiungi")
+    btn_add.clicked.connect(lambda: _add_time_window(analyzer))
+    btn_add.setMaximumWidth(80)
+    btn_reset = QPushButton("↻ Reset")
+    btn_reset.clicked.connect(lambda: _reset_time_windows(analyzer))
+    btn_reset.setMaximumWidth(80)
+    btn_row.addWidget(btn_add)
+    btn_row.addWidget(btn_reset)
+    btn_row.addStretch()
+    layout.addLayout(btn_row)
+    
+    layout.addWidget(analyzer.time_windows_container)
+    
+    # Separator
+    separator = QFrame()
+    separator.setFrameShape(QFrame.HLine)
+    separator.setObjectName("separator")
+    layout.addWidget(separator)
+    
+    # === FILTRI AGGIUNTIVI ===
+    filters_label = QLabel("🎯 Parametri Selezione")
+    filters_label.setStyleSheet("font-weight: bold; font-size: 11px;")
+    layout.addWidget(filters_label)
+    
     perc_row = QHBoxLayout()
     perc_row.addWidget(QLabel("Percentile min:"))
     analyzer.percentile_input = QLineEdit("80")
     analyzer.percentile_input.setPlaceholderText("0-100")
+    analyzer.percentile_input.setMaximumWidth(60)
     perc_row.addWidget(analyzer.percentile_input)
-    filter_l.addLayout(perc_row)
+    perc_row.addStretch()
+    layout.addLayout(perc_row)
 
     count_row = QHBoxLayout()
     count_row.addWidget(QLabel("Valori/finestre:"))
     analyzer.count_input = QLineEdit("3")
     analyzer.count_input.setPlaceholderText("es. 3")
+    analyzer.count_input.setMaximumWidth(60)
     count_row.addWidget(analyzer.count_input)
-    filter_l.addLayout(count_row)
+    count_row.addStretch()
+    layout.addLayout(count_row)
 
     sprint_row = QHBoxLayout()
     sprint_row.addWidget(QLabel("Sprint (s):"))
     analyzer.sprint_input = QLineEdit("10")
     analyzer.sprint_input.setPlaceholderText("es. 10")
+    analyzer.sprint_input.setMaximumWidth(60)
     sprint_row.addWidget(analyzer.sprint_input)
-    filter_l.addLayout(sprint_row)
+    sprint_row.addStretch()
+    layout.addLayout(sprint_row)
+    
+    section = _create_section("🎯 FILTRI", content)
+    analyzer.sidebar.addWidget(section)
 
-    analyzer.sidebar.addWidget(analyzer.filter_box)
+
+def _add_time_window(analyzer):
+    """Aggiunge una nuova finestra temporale"""
+    window_row = QHBoxLayout()
+    window_input = QLineEdit()
+    window_input.setPlaceholderText(f"Finestra {len(analyzer.time_windows_inputs)+1} (s)")
+    window_row.addWidget(window_input)
+    analyzer.time_windows_layout.addLayout(window_row)
+    analyzer.time_windows_inputs.append(window_input)
 
 
-def _create_results_widget(analyzer):
-    """Crea il widget dei risultati"""
-    analyzer.res_box = QFrame()
-    res_l = QGridLayout(analyzer.res_box)
-    res_l.setSpacing(8)
+def _reset_time_windows(analyzer):
+    """Ripristina le finestre temporali ai valori di default"""
+    default_values = ["120", "240", "480", "900", "1800", "2700"]
+    
+    # Ripristina i primi 6 campi ai valori di default
+    for i in range(min(6, len(analyzer.time_windows_inputs))):
+        analyzer.time_windows_inputs[i].setText(default_values[i])
+    
+    # Svuota eventuali campi aggiuntivi
+    for i in range(6, len(analyzer.time_windows_inputs)):
+        analyzer.time_windows_inputs[i].clear()
+
+
+def _create_processing_section(analyzer):
+    """Crea la sezione Elaborazione"""
+    content = QWidget()
+    layout = QVBoxLayout(content)
+    layout.setSpacing(8)
+    
+    analyzer.btn_calc = QPushButton("⚙️ Elabora Modello")
+    analyzer.btn_calc.clicked.connect(analyzer.run_calculation)
+    layout.addWidget(analyzer.btn_calc)
+    
+    section = _create_section("⚙️ ELABORAZIONE", content)
+    analyzer.sidebar.addWidget(section)
+
+
+def _create_results_section(analyzer):
+    """Crea la sezione Risultati"""
+    content = QWidget()
+    layout = QGridLayout(content)
+    layout.setSpacing(8)
     
     analyzer.lbl_cp = QLabel("CP: -- W")
     analyzer.lbl_wprime = QLabel("W': -- J")
@@ -138,16 +243,17 @@ def _create_results_widget(analyzer):
     analyzer.lbl_mae = QLabel("MAE: -- W")
     
     # Colonna 1 (sinistra): CP, W', Pmax, A
-    res_l.addWidget(analyzer.lbl_cp, 0, 0)
-    res_l.addWidget(analyzer.lbl_wprime, 1, 0)
-    res_l.addWidget(analyzer.lbl_pmax, 2, 0)
-    res_l.addWidget(analyzer.lbl_a, 3, 0)
+    layout.addWidget(analyzer.lbl_cp, 0, 0)
+    layout.addWidget(analyzer.lbl_wprime, 1, 0)
+    layout.addWidget(analyzer.lbl_pmax, 2, 0)
+    layout.addWidget(analyzer.lbl_a, 3, 0)
     
     # Colonna 2 (destra): RMSE, MAE
-    res_l.addWidget(analyzer.lbl_rmse, 0, 1)
-    res_l.addWidget(analyzer.lbl_mae, 1, 1)
+    layout.addWidget(analyzer.lbl_rmse, 0, 1)
+    layout.addWidget(analyzer.lbl_mae, 1, 1)
     
-    analyzer.sidebar.addWidget(analyzer.res_box)
+    section = _create_section("📊 RISULTATI", content)
+    analyzer.sidebar.addWidget(section)
 
 
 def create_ompd_tab(analyzer):
@@ -264,14 +370,12 @@ def apply_widget_styles(analyzer):
     # Titolo sidebar
     analyzer.lbl_title.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {accent_color};")
     
-    # Titolo converter
-    analyzer.conv_title.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {accent_color};")
-    
     # Output converter
     analyzer.sec_out.setStyleSheet(f"font-weight: bold; color: {text_color}; font-size: 14px; padding: 6px;")
-
+    
     # Box risultati
-    analyzer.res_box.setStyleSheet(f"background-color: {sidebar_color}; border-radius: 10px; padding: 10px;")
+    if hasattr(analyzer, 'res_box'):
+        analyzer.res_box.setStyleSheet(f"background-color: {sidebar_color}; border-radius: 10px; padding: 10px;")
     
     # TabWidget
     analyzer.tab_widget.setStyleSheet(f"""

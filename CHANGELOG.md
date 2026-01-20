@@ -1,3 +1,18 @@
+## [0.3.1] - 2026-01-20
+### Omniselector - UI Refinement
+- **Redesign della sidebar**:
+  - Sezioni sempre visibili: DATI, FILTRI, ELABORAZIONE, RISULTATI
+  - Layout pulito senza bordi e sfondi grigi
+- **Convertitore tempo integrato**:
+  - Accorpamento nella sezione FILTRI (finestre temporali)
+  - Aggiunta nota "fast conv" per chiarezza funzionale
+  - Riduzione dello spazio laterale occupato
+- **Coerenza con OmniPD Calculator**:
+  - Stili uniformi tra i moduli
+  - Theme selector identico in posizione e configurazione
+  - Applicazione corretta del tema globale tramite `get_style()`
+  - Stili specifici gestiti da `apply_widget_styles()`
+
 ## [0.3] - 2026-01-20
 ### Omniselector - Nuovo modulo
 - Implementato modulo Omniselector completo con architettura modulare

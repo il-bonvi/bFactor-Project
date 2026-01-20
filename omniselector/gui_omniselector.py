@@ -22,7 +22,7 @@ from .core_omniselector import (
     convert_time_minutes_to_seconds,
     apply_data_filters
 )
-from .widgets_omniselector import CSVColumnDialog, TimeWindowsDialog
+from .widgets_omniselector import CSVColumnDialog
 from .plotting_omniselector import (
     format_plot, plot_ompd_curve, plot_residuals, plot_weff,
     draw_time_windows, plot_raw_points
@@ -60,14 +60,6 @@ class OmniSelectorAnalyzer(QWidget):
         self.MAE = None
         self.raw_x_data = None
         self.raw_y_data = None
-        self.time_windows = [
-            (120, 240),
-            (240, 480),
-            (480, 900),
-            (900, 1800),
-            (1800, 2700),
-            (2700, 4500),
-        ]
         self.percentile_min = 0.0
         self.values_per_window = 1
         self.sprint_value = 10.0  # default sprint value in seconds
@@ -138,17 +130,51 @@ class OmniSelectorAnalyzer(QWidget):
         self.update_ompd_plot()
         self.update_residuals_plot()
         self.update_weff_plot()
- 
+        self.setStyleSheet(get_style(tema_nome))
+        
+        # Aggiorna i colori di background delle figure matplotlib
+        colors = TEMI.get(tema_nome, TEMI["Forest Green"])
+        bg_color = colors.get("bg", "#061f17")
+        
+        self.figure1.set_facecolor(bg_color)
+        self.figure2.set_facecolor(bg_color)
+        self.figure3.set_facecolor(bg_color)
+        
+        # Aggiorna gli stili specifici dei widget
+        apply_widget_styles(self)
+        
+        # Ridisegna i grafici con il nuovo tema
+        self.update_ompd_plot()
+        self.update_residuals_plot()
+        self.update_weff_plot()
 
-
-
-    def open_time_windows_dialog(self):
-        dlg = TimeWindowsDialog(self, defaults=self.time_windows)
-        if dlg.exec() == QDialog.Accepted:
+    def _get_time_windows_from_ui(self):
+        """Recupera le finestre temporali dai widget inline"""
+        windows = []
+        for i in range(len(self.time_windows_inputs) - 1):
             try:
-                self.time_windows = dlg.get_windows()
-            except Exception as e:
-                QMessageBox.critical(self, "Errore finestre", str(e))
+                start_text = self.time_windows_inputs[i].text().strip()
+                end_text = self.time_windows_inputs[i + 1].text().strip()
+                
+                if start_text and end_text:
+                    start = float(start_text)
+                    end = float(end_text)
+                    if start < end:
+                        windows.append((start, end))
+            except ValueError:
+                continue
+        
+        # Se non ci sono finestre valide, usa valori di default
+        if not windows:
+            windows = [
+                (120, 240),
+                (240, 480),
+                (480, 900),
+                (900, 1800),
+                (1800, 2700),
+            ]
+        
+        return windows
 
     def _update_filter_params(self):
         """Aggiorna i parametri di filtraggio dall'UI"""
@@ -168,9 +194,10 @@ class OmniSelectorAnalyzer(QWidget):
     def _apply_filters(self, x_data, y_data):
         """Applica i filtri usando la funzione del core module"""
         self._update_filter_params()
+        time_windows = self._get_time_windows_from_ui()
         return apply_data_filters(
             x_data, y_data, 
-            self.time_windows, 
+            time_windows, 
             self.percentile_min, 
             self.values_per_window, 
             self.sprint_value,
@@ -179,7 +206,8 @@ class OmniSelectorAnalyzer(QWidget):
 
     def _draw_time_windows(self, ax):
         """Disegna le finestre temporali sul grafico"""
-        draw_time_windows(ax, self.time_windows, self.current_theme)
+        time_windows = self._get_time_windows_from_ui()
+        draw_time_windows(ax, time_windows, self.current_theme)
 
     def _plot_raw_points(self, ax, overlay_selected=True):
         """Disegna i punti raw sul grafico"""
@@ -323,11 +351,11 @@ class OmniSelectorAnalyzer(QWidget):
         self.event_handler.connect_residuals_hover()
 
     def update_weff_plot(self):
-        """Aggiorna il grafico W'eff"""
+        """Aggiorna il grafico W prime eff"""
         if self.params is None:
             self.ax3.clear()
             format_plot(self.ax3, self.current_theme)
-            self.ax3.set_title("OmPD Effective W'", color=TEMI.get(self.current_theme, TEMI["Forest Green"]).get("text", "#f1f5f9"), fontsize=14)
+            self.ax3.set_title("OmPD Effective W prime", color=TEMI.get(self.current_theme, TEMI["Forest Green"]).get("text", "#f1f5f9"), fontsize=14)
             self.canvas3.draw()
             return
         plot_weff(self.ax3, self.params, self.params[1], self.current_theme)
