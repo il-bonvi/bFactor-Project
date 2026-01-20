@@ -48,26 +48,15 @@ class BfactorLauncher(QWidget):
         header.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
         main_layout.addWidget(header)
 
-        # THEME SELECTOR (minimal, top-right)
+        # THEME SELECTOR
         theme_layout = QHBoxLayout()
         theme_layout.setAlignment(Qt.AlignRight)
         theme_label = QLabel("Tema")
         theme_label.setStyleSheet("color: #64748b; font-size: 11px;")
-        '''self.theme_selector = QComboBox()
-        self.theme_selector.addItems(list(TEMI.keys()))
-        self.theme_selector.setCurrentText(self.current_theme)
-        self.theme_selector.currentTextChanged.connect(self.apply_theme)'''
-        theme_layout = QHBoxLayout()
-        theme_layout.addStretch()  # Spinge a destra
         self.theme_selector = QComboBox()
         self.theme_selector.addItems(list(TEMI.keys()))
         self.theme_selector.setCurrentText(self.current_theme)
-        self.theme_selector.currentTextChanged.connect(self.apply_selected_theme)
-        self.theme_selector.setMaximumWidth(150)  # Rimpicciolisce il widget
-        self.theme_selector.setStyleSheet("font-size: 10px; padding: 3px;")  # Font più piccolo
-        theme_layout.addWidget(self.theme_selector)
-        self.sidebar.addLayout(theme_layout)
-        
+        self.theme_selector.currentTextChanged.connect(self.apply_theme)
         self.theme_selector.setFixedHeight(34)
         self.theme_selector.setMaximumWidth(220)
         self.theme_selector.setToolTip("Seleziona tema UI")
