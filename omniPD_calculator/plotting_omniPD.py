@@ -15,20 +15,29 @@ from matplotlib.ticker import FixedLocator, FuncFormatter
 
 try:
     from .core_omniPD import ompd_power, ompd_power_short, w_eff, _format_time_label, TCPMAX
+    from shared.styles import TEMI
 except ImportError:
     from omniPD_calculator.core_omniPD import ompd_power, ompd_power_short, w_eff, _format_time_label, TCPMAX
+    from shared.styles import TEMI
 
 
-def format_plot(ax):
+def format_plot(ax, theme="Forest Green"):
     """Formattazione comune per tutti i plot"""
-    ax.set_facecolor('#061f17')
-    ax.tick_params(colors='white')
+    colors = TEMI.get(theme, TEMI["Forest Green"])
+    
+    # Usa il colore del background dal tema, o default scuro
+    bg_color = colors.get("bg", "#061f17")
+    border_color = colors.get("border", "#334155")
+    text_color = colors.get("text", "#f1f5f9")
+    
+    ax.set_facecolor(bg_color)
+    ax.tick_params(colors=text_color)
     for s in ax.spines.values(): 
-        s.set_color('#334155')
+        s.set_color(border_color)
     ax.grid(True, alpha=0.1)
 
 
-def plot_ompd_curve(ax, x_data, y_data, params):
+def plot_ompd_curve(ax, x_data, y_data, params, theme="Forest Green"):
     """
     Disegna il grafico OmPD principale
     
@@ -37,38 +46,44 @@ def plot_ompd_curve(ax, x_data, y_data, params):
         x_data: array dei tempi (s)
         y_data: array delle potenze (W)
         params: tuple (CP, W_prime, Pmax, A)
+        theme: nome del tema da applicare
     """
     ax.clear()
-    format_plot(ax)
+    format_plot(ax, theme)
+    
+    colors = TEMI.get(theme, TEMI["Forest Green"])
+    accent_color = colors.get("accent", "#4ade80")
+    btn_color = colors.get("btn", "#16a34a")
+    text_color = colors.get("text", "#f1f5f9")
+    sidebar_color = colors.get("sidebar", "#0b2e24")
     
     CP, W_prime, Pmax, A = params
     
-    # Dati inseriti
-    ax.scatter(x_data, y_data, color='#4ade80', 
-                    label='MMP Data', zorder=5, s=80, marker='x',
+    # Dati inseriti - usa colore accent (senza label)
+    ax.scatter(x_data, y_data, color=accent_color, 
+                    zorder=5, s=80, marker='x',
                     linewidths=1)
 
     # Range di tempo
-    t_max = max(max(x_data) * 1.2, 3600)
+    t_max = max(max(x_data) * 1.2, 5400)
     t_model = np.logspace(np.log10(1.0), np.log10(t_max), 500)
     
-    # Curva completa
+    # Curva completa - usa btn_color (senza label)
     p_model = ompd_power(t_model, CP, W_prime, Pmax, A)
-    ax.plot(t_model, p_model, color='#7c3aed', 
-                 linewidth=2.5, label='OmniPD')
+    ax.plot(t_model, p_model, color=btn_color, 
+                 linewidth=2.5)
     
-    # Curva base
+    # Curva base - colore secondario (senza label)
     t_short = t_model[t_model <= TCPMAX]
     p_short = ompd_power_short(t_short, CP, W_prime, Pmax)
     ax.plot(t_short, p_short, color='#3b82f6', 
-                 linewidth=1.5, linestyle='--', alpha=0.7, 
-                 label='Base curve (t ≤ TCPmax)')
+                 linewidth=1.5, linestyle='--', alpha=0.7)
     
-    # Linee di riferimento
+    # Linee di riferimento con label per legenda
     ax.axhline(y=CP, color='red', linestyle='--', 
-                    linewidth=1.0, alpha=0.8, zorder=1)
+                    linewidth=1.0, alpha=0.8, zorder=1, label='CP')
     ax.axvline(x=TCPMAX, color='blue', linestyle=':', 
-                    linewidth=1.0, alpha=0.7, zorder=1)
+                    linewidth=2.0, alpha=0.7, zorder=1, label='TCPMAX')
 
     # Assi
     ax.set_xscale("log")
@@ -79,9 +94,9 @@ def plot_ompd_curve(ax, x_data, y_data, params):
     ax.xaxis.set_minor_locator(plt.NullLocator())
     ax.set_xticklabels([_format_time_label(t) for t in xticks])
     
-    ax.set_xlabel("Time", color='white')
-    ax.set_ylabel("Power (W)", color='white')
-    ax.set_title("OmniPD Curve", color='white', fontsize=14)
+    ax.set_xlabel("Time", color=text_color)
+    ax.set_ylabel("Power (W)", color=text_color)
+    ax.set_title("OmniPD Curve", color=text_color, fontsize=14)
     
     # Griglia solo sui tick maggiori
     ax.grid(which='major', linestyle='-', linewidth=0.8, alpha=0.5)
@@ -91,13 +106,13 @@ def plot_ompd_curve(ax, x_data, y_data, params):
     textstr = f"CP={int(round(CP))} W\nW'={int(round(W_prime))} J\nPmax={int(round(Pmax))} W\nA={A:.2f}"
     ax.text(0.98, 0.98, textstr, transform=ax.transAxes, 
              fontsize=9, verticalalignment='top', horizontalalignment='right',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+             bbox=dict(boxstyle='round', facecolor=text_color, alpha=0.9))
     
-    ax.legend(facecolor='#1e293b', edgecolor='none', 
-               labelcolor='white', loc='lower left', fontsize=9)
+    ax.legend(facecolor=sidebar_color, edgecolor='none', 
+               labelcolor=text_color, loc='lower left', fontsize=9)
 
 
-def plot_residuals(ax, x_data, residuals, RMSE, MAE):
+def plot_residuals(ax, x_data, residuals, RMSE, MAE, theme="Forest Green"):
     """
     Disegna il grafico dei residui
     
@@ -107,12 +122,17 @@ def plot_residuals(ax, x_data, residuals, RMSE, MAE):
         residuals: array dei residui
         RMSE: errore quadratico medio
         MAE: errore medio assoluto
+        theme: nome del tema da applicare
     """
     ax.clear()
-    format_plot(ax)
+    format_plot(ax, theme)
+    ax.set_ylim(-50, 50)
+    
+    colors = TEMI.get(theme, TEMI["Forest Green"])
+    text_color = colors.get("text", "#f1f5f9")
     
     # Linea zero
-    ax.axhline(0, color='white', linestyle='--', linewidth=1, alpha=0.5)
+    ax.axhline(0, color=text_color, linestyle='--', linewidth=1, alpha=0.5)
     
     # Residui
     ax.plot(x_data, residuals, linestyle='-', 
@@ -127,9 +147,9 @@ def plot_residuals(ax, x_data, residuals, RMSE, MAE):
     ax.xaxis.set_minor_locator(plt.NullLocator())
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x,pos: _format_time_label(x)))
     
-    ax.set_xlabel("Time", color='white')
-    ax.set_ylabel("Residuals (W)", color='white')
-    ax.set_title("OmPD Residuals", color='white', fontsize=14)
+    ax.set_xlabel("Time", color=text_color)
+    ax.set_ylabel("Residuals (W)", color=text_color)
+    ax.set_title("OmPD Residuals", color=text_color, fontsize=14)
     
     # Griglia solo sui tick maggiori
     ax.grid(which='major', linestyle='-', linewidth=0.7, alpha=0.5)
@@ -139,10 +159,10 @@ def plot_residuals(ax, x_data, residuals, RMSE, MAE):
     metrics_text = f"RMSE = {RMSE:.2f} W\nMAE  = {MAE:.2f} W"
     ax.text(0.98, 0.98, metrics_text, transform=ax.transAxes,
              fontsize=9, verticalalignment='top', horizontalalignment='right',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+             bbox=dict(boxstyle='round', facecolor=text_color, alpha=0.9))
 
 
-def plot_weff(ax, params, W_prime):
+def plot_weff(ax, params, W_prime, theme="Forest Green"):
     """
     Disegna il grafico W'eff (Effective W')
     
@@ -150,9 +170,14 @@ def plot_weff(ax, params, W_prime):
         ax: Axes matplotlib
         params: tuple (CP, W_prime, Pmax, A)
         W_prime: valore di W'
+        theme: nome del tema da applicare
     """
     ax.clear()
-    format_plot(ax)
+    format_plot(ax, theme)
+    
+    colors = TEMI.get(theme, TEMI["Forest Green"])
+    accent_color = colors.get("accent", "#4ade80")
+    text_color = colors.get("text", "#f1f5f9")
     
     CP, _, Pmax, _ = params
     
@@ -160,8 +185,8 @@ def plot_weff(ax, params, W_prime):
     T_plot_w = np.linspace(1, 3*60, 500)
     Weff_plot = w_eff(T_plot_w, W_prime, CP, Pmax)
     
-    # Curva W'eff
-    ax.plot(T_plot_w, Weff_plot, color='#4ade80', linewidth=2.5)
+    # Curva W'eff - usa colore accent
+    ax.plot(T_plot_w, Weff_plot, color=accent_color, linewidth=2.5)
     
     # Punto 99% W'
     W_99 = 0.99 * W_prime
@@ -178,14 +203,14 @@ def plot_weff(ax, params, W_prime):
                      xy=(t_99, W_99), xytext=(10, -18), 
                      textcoords='offset points',
                      bbox=dict(boxstyle='round', facecolor='blue', alpha=0.2),
-                     fontsize=10, color='white')
+                     fontsize=10, color=text_color)
     
     # Assi
     ax.set_xlim(0, 3*60)
     ax.set_ylim(0, np.max(Weff_plot) * 1.1)
-    ax.set_xlabel("Time", color='white')
-    ax.set_ylabel("W'eff (J)", color='white')
-    ax.set_title("OmPD Effective W'", color='white', fontsize=14)
+    ax.set_xlabel("Time", color=text_color)
+    ax.set_ylabel("W'eff (J)", color=text_color)
+    ax.set_title("OmPD Effective W'", color=text_color, fontsize=14)
     
     x_ticks = list(range(0, 181, 30))
     ax.set_xticks(x_ticks)
@@ -200,4 +225,4 @@ def plot_weff(ax, params, W_prime):
     ax.text(0.98, 0.98, f"W' = {int(W_prime)} J", 
              transform=ax.transAxes, fontsize=10,
              verticalalignment='top', horizontalalignment='right',
-             bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+             bbox=dict(boxstyle='round', facecolor=text_color, alpha=0.9))

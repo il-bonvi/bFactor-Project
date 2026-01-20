@@ -94,7 +94,7 @@ class OmniPDAnalyzer(QWidget):
         self.sidebar = QVBoxLayout()
         
         lbl_title = QLabel("OMNIPD INPUT")
-        lbl_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #4ade80;")
+        self.lbl_title = lbl_title  # Salva riferimento per aggiornamento tema
         self.sidebar.addWidget(lbl_title)
 
         # Theme Selector
@@ -105,7 +105,6 @@ class OmniPDAnalyzer(QWidget):
         self.sidebar.addWidget(self.theme_selector)'''
 
         self.info_lbl = QLabel("One must be sprint power (best 1-10s)\nMinimum 4 points!!")
-        self.info_lbl.setStyleSheet("color: #94a3b8; font-style: italic; font-size: 11px;")
         self.info_lbl.setAlignment(Qt.AlignCenter)
         self.sidebar.addWidget(self.info_lbl)
 
@@ -138,7 +137,6 @@ class OmniPDAnalyzer(QWidget):
         # Titolo converter
         self.conv_title = QLabel("⚡ Quick Converter")
         self.conv_title.setAlignment(Qt.AlignCenter)
-        self.conv_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #4ade80;") ##<<<--- DA METTERE COLORE TEMA!!!!
         conv_l.addWidget(self.conv_title)
         # Input/Output layout
         input_h = QHBoxLayout()
@@ -150,27 +148,23 @@ class OmniPDAnalyzer(QWidget):
         self.sec_out = QLabel("= 0 s")
         self.sec_out.setAlignment(Qt.AlignCenter)
         self.sec_out.setMinimumWidth(80)
-        self.sec_out.setStyleSheet("font-weight: bold; color: white; font-size: 14px; padding: 6px;")
         input_h.addWidget(self.min_in, 1)
         input_h.addWidget(self.sec_out, 1)
         conv_l.addLayout(input_h)
         self.sidebar.addWidget(self.conv_box)
 
         # Bottone Calcola
-        self.btn_calc = QPushButton("ELABORA MODELLO")
-        self.btn_calc.setStyleSheet("background-color: #7c3aed; padding: 15px; font-weight: bold;")
+        self.btn_calc = QPushButton("⚙️ ELABORA MODELLO")
         self.btn_calc.clicked.connect(self.run_calculation)
         self.sidebar.addWidget(self.btn_calc)
 
-        # Bottone Import CSV/Excel
-        self.btn_import = QPushButton("📁 IMPORT CSV/EXCEL")
-        self.btn_import.setStyleSheet("background-color: #059669; padding: 12px; font-weight: bold;")
+        # Bottone Import CSV
+        self.btn_import = QPushButton("📁 IMPORT CSV")
         self.btn_import.clicked.connect(self.import_file)
         self.sidebar.addWidget(self.btn_import)
 
         # Risultati
         self.res_box = QFrame()
-        self.res_box.setStyleSheet("background-color: #1e293b; border-radius: 10px; padding: 10px;")
         res_l = QGridLayout(self.res_box)
         res_l.setSpacing(8)
         
@@ -197,21 +191,6 @@ class OmniPDAnalyzer(QWidget):
         right_layout = QVBoxLayout()
 
         self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #334155;
-                background: #061f17;
-            }
-            QTabBar::tab {
-                background: #1e293b;
-                color: white;
-                padding: 10px 20px;
-                margin-right: 2px;
-            }
-            QTabBar::tab:selected {
-                background: #7c3aed;
-            }
-        """)
         
         # Tab 1: OmPD Curve
         self.create_ompd_tab()
@@ -251,6 +230,9 @@ class OmniPDAnalyzer(QWidget):
         right_layout.addLayout(theme_layout)
         right_layout.addWidget(self.tab_widget)
 
+        # Applica gli stili iniziali
+        self.update_widget_styles()
+        
         self.load_initial_points()
 
     def create_ompd_tab(self):
@@ -258,10 +240,13 @@ class OmniPDAnalyzer(QWidget):
         tab1 = QWidget()
         layout1 = QVBoxLayout(tab1)
         
-        self.figure1 = Figure(facecolor='#061f17')
+        colors = TEMI.get(self.current_theme, TEMI["Forest Green"])
+        bg_color = colors.get("bg", "#061f17")
+        
+        self.figure1 = Figure(facecolor=bg_color)
         self.canvas1 = FigureCanvas(self.figure1)
         self.ax1 = self.figure1.add_subplot(111)
-        format_plot(self.ax1)
+        format_plot(self.ax1, self.current_theme)
         
         # Toolbar
         toolbar1 = NavigationToolbar(self.canvas1, tab1)
@@ -276,10 +261,13 @@ class OmniPDAnalyzer(QWidget):
         tab2 = QWidget()
         layout2 = QVBoxLayout(tab2)
         
-        self.figure2 = Figure(facecolor='#061f17')
+        colors = TEMI.get(self.current_theme, TEMI["Forest Green"])
+        bg_color = colors.get("bg", "#061f17")
+        
+        self.figure2 = Figure(facecolor=bg_color)
         self.canvas2 = FigureCanvas(self.figure2)
         self.ax2 = self.figure2.add_subplot(111)
-        format_plot(self.ax2)
+        format_plot(self.ax2, self.current_theme)
         
         # Toolbar
         toolbar2 = NavigationToolbar(self.canvas2, tab2)
@@ -294,10 +282,13 @@ class OmniPDAnalyzer(QWidget):
         tab3 = QWidget()
         layout3 = QVBoxLayout(tab3)
         
-        self.figure3 = Figure(facecolor='#061f17')
+        colors = TEMI.get(self.current_theme, TEMI["Forest Green"])
+        bg_color = colors.get("bg", "#061f17")
+        
+        self.figure3 = Figure(facecolor=bg_color)
         self.canvas3 = FigureCanvas(self.figure3)
         self.ax3 = self.figure3.add_subplot(111)
-        format_plot(self.ax3)
+        format_plot(self.ax3, self.current_theme)
         
         # Toolbar
         toolbar3 = NavigationToolbar(self.canvas3, tab3)
@@ -308,11 +299,79 @@ class OmniPDAnalyzer(QWidget):
         self.tab_widget.addTab(tab3, "W'eff")
 
     def apply_selected_theme(self, tema_nome):
-        """Cambia il tema dell'interfaccia"""
+        """Cambia il tema dell'interfaccia e aggiorna grafici"""
         self.current_theme = tema_nome
-        self.setStyleSheet(get_style(tema_nome)) 
+        self.setStyleSheet(get_style(tema_nome))
+        
+        # Aggiorna i colori di background delle figure matplotlib
+        colors = TEMI.get(tema_nome, TEMI["Forest Green"])
+        bg_color = colors.get("bg", "#061f17")
+        
+        self.figure1.set_facecolor(bg_color)
+        self.figure2.set_facecolor(bg_color)
+        self.figure3.set_facecolor(bg_color)
+        
+        # Aggiorna gli stili specifici dei widget
+        self.update_widget_styles()
+        
+        # Ridisegna i grafici con il nuovo tema
+        self.update_ompd_plot()
+        self.update_residuals_plot()
+        self.update_weff_plot()
+    
+    def update_widget_styles(self):
+        """Aggiorna gli stili dei widget in base al tema corrente"""
+        colors = TEMI.get(self.current_theme, TEMI["Forest Green"])
+        
+        accent_color = colors.get("accent", "#4ade80")
+        btn_color = colors.get("btn", "#16a34a")
+        text_color = colors.get("text", "#f1f5f9")
+        sidebar_color = colors.get("sidebar", "#0b2e24")
+        btn_text_color = colors.get("btn_text", "#ffffff")
+        bg_color = colors.get("bg", "#061f17")
+        border_color = colors.get("border", "#334155")
+        
+        # Titolo sidebar
+        self.lbl_title.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {accent_color};")
+        
+        # Info label
+        self.info_lbl.setStyleSheet(f"color: {border_color}; font-style: italic; font-size: 11px;")
+        
+        # Titolo converter
+        self.conv_title.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {accent_color};")
+        
+        # Output converter
+        self.sec_out.setStyleSheet(f"font-weight: bold; color: {text_color}; font-size: 14px; padding: 6px;")
+
+        # Box risultati senza bordo
+        self.res_box.setStyleSheet(f"background-color: {sidebar_color}; border-radius: 10px; padding: 10px;")
+        
+        # TabWidget
+        self.tab_widget.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: 1px solid {border_color};
+                background: {bg_color};
+            }}
+            QTabBar::tab {{
+                background: {sidebar_color};
+                color: {text_color};
+                padding: 10px 20px;
+                margin-right: 2px;
+                border: 1px solid {border_color};
+                border-top-left-radius: 12px;
+                border-top-right-radius: 12px;
+            }}
+            QTabBar::tab:selected {{
+                background: {btn_color};
+                color: {btn_text_color};
+            }}
+        """)
+ 
 
     def add_empty_row(self, t="", w=""):
+        # Se t o w sono False (bool), sostituisci con stringa vuota
+        t = "" if t is False else t
+        w = "" if w is False else w
         row = MmpRow(t, w)
         self.rows.append(row)
         self.scroll_layout.addLayout(row)
@@ -431,29 +490,37 @@ class OmniPDAnalyzer(QWidget):
     def update_ompd_plot(self):
         """Aggiorna il grafico OmPD principale"""
         if self.params is None:
+            # Mostra solo il titolo e il colore tema
+            self.ax1.clear()
+            format_plot(self.ax1, self.current_theme)
+            self.ax1.set_title("OmniPD Curve", color=TEMI.get(self.current_theme, TEMI["Forest Green"]).get("text", "#f1f5f9"), fontsize=14)
+            self.canvas1.draw()
             return
-        
-        plot_ompd_curve(self.ax1, self.x_data, self.y_data, self.params)
+        plot_ompd_curve(self.ax1, self.x_data, self.y_data, self.params, self.current_theme)
         self.canvas1.draw()
-        
         # Connetti event hover al grafico OmPD
         self.event_handler.connect_ompd_hover()
 
     def update_residuals_plot(self):
         """Aggiorna il grafico dei residui"""
         if self.residuals is None:
+            self.ax2.clear()
+            format_plot(self.ax2, self.current_theme)
+            self.ax2.set_title("OmPD Residuals", color=TEMI.get(self.current_theme, TEMI["Forest Green"]).get("text", "#f1f5f9"), fontsize=14)
+            self.canvas2.draw()
             return
-        
-        plot_residuals(self.ax2, self.x_data, self.residuals, self.RMSE, self.MAE)
+        plot_residuals(self.ax2, self.x_data, self.residuals, self.RMSE, self.MAE, self.current_theme)
         self.canvas2.draw()
-        
         # Connetti event hover al grafico residui
         self.event_handler.connect_residuals_hover()
 
     def update_weff_plot(self):
         """Aggiorna il grafico W'eff"""
         if self.params is None:
+            self.ax3.clear()
+            format_plot(self.ax3, self.current_theme)
+            self.ax3.set_title("OmPD Effective W'", color=TEMI.get(self.current_theme, TEMI["Forest Green"]).get("text", "#f1f5f9"), fontsize=14)
+            self.canvas3.draw()
             return
-        
-        plot_weff(self.ax3, self.params, self.params[1])  # params[1] è W_prime
+        plot_weff(self.ax3, self.params, self.params[1], self.current_theme)
         self.canvas3.draw()
