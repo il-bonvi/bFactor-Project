@@ -248,6 +248,9 @@ class OmniPDAnalyzer(QWidget):
         self.ax1 = self.figure1.add_subplot(111)
         format_plot(self.ax1, self.current_theme)
         
+        # Rimuovi margini per massimizzare l'area del grafico
+        self.figure1.tight_layout(pad=0.5)
+        
         # Toolbar
         toolbar1 = NavigationToolbar(self.canvas1, tab1)
         
@@ -269,6 +272,9 @@ class OmniPDAnalyzer(QWidget):
         self.ax2 = self.figure2.add_subplot(111)
         format_plot(self.ax2, self.current_theme)
         
+        # Rimuovi margini per massimizzare l'area del grafico
+        self.figure2.tight_layout(pad=0.5)
+        
         # Toolbar
         toolbar2 = NavigationToolbar(self.canvas2, tab2)
         
@@ -289,6 +295,9 @@ class OmniPDAnalyzer(QWidget):
         self.canvas3 = FigureCanvas(self.figure3)
         self.ax3 = self.figure3.add_subplot(111)
         format_plot(self.ax3, self.current_theme)
+        
+        # Rimuovi margini per massimizzare l'area del grafico
+        self.figure3.tight_layout(pad=0.5)
         
         # Toolbar
         toolbar3 = NavigationToolbar(self.canvas3, tab3)

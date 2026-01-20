@@ -6,11 +6,11 @@
 # ==============================================================================
 
 """
-omniPD Widgets - Componenti custom per la GUI
+Omniselector Widgets - Componenti custom per la GUI
 """
 
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QLineEdit, QComboBox, QDialogButtonBox)
+                             QLineEdit, QComboBox, QDialogButtonBox, QTextEdit)
 
 
 class CSVColumnDialog(QDialog):
@@ -51,16 +51,48 @@ class CSVColumnDialog(QDialog):
         return self.cb_time.currentIndex(), self.cb_power.currentIndex()
 
 
-class MmpRow(QHBoxLayout):
-    """Widget per input di una riga MMP (Tempo, Potenza)"""
-    def __init__(self, t="", w=""):
-        super().__init__()
-        self.t_input = QLineEdit(str(t))
-        self.t_input.setPlaceholderText("Sec")
-        self.w_input = QLineEdit(str(w))
-        self.w_input.setPlaceholderText("Watt")
+class TimeWindowsDialog(QDialog):
+    """Dialog per inserire finestre temporali come 'tmin,tmax' per riga"""
+    
+    def __init__(self, parent, defaults=None):
+        super().__init__(parent)
+        self.setWindowTitle("Finestre temporali (secondi)")
+        self.result = None
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("Una finestra per riga, formato: tmin,tmax"))
         
-        self.addWidget(QLabel("T:"))
-        self.addWidget(self.t_input)
-        self.addWidget(QLabel("W:"))
-        self.addWidget(self.w_input)
+        self.text = QTextEdit()
+        layout.addWidget(self.text)
+        
+        # Popola con valori di default
+        if defaults:
+            lines = [f"{int(tmin)},{int(tmax)}" for tmin, tmax in defaults]
+            self.text.setPlainText("\n".join(lines))
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+    
+    def get_windows(self):
+        """Restituisce la lista di finestre temporali (tmin, tmax)"""
+        text = self.text.toPlainText()
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        windows = []
+        for line in lines:
+            try:
+                if ',' in line:
+                    tmin_str, tmax_str = line.split(',')
+                    tmin = float(tmin_str.strip())
+                    tmax = float(tmax_str.strip())
+                    if tmax <= tmin:
+                        raise ValueError("tmax deve essere > tmin")
+                    windows.append((tmin, tmax))
+                else:
+                    raise ValueError(f"Riga non valida: '{line}' (usa tmin,tmax)")
+            except Exception as e:
+                raise ValueError(f"Errore nella riga '{line}': {str(e)}")
+        
+        if not windows:
+            raise ValueError("Inserisci almeno una finestra valida")
+        return windows

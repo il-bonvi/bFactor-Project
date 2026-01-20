@@ -1,3 +1,22 @@
+## [0.3] - 2026-01-20
+### Omniselector - Nuovo modulo
+- Implementato modulo Omniselector completo con architettura modulare
+- Workflow semplificato: caricamento CSV → filtraggio automatico → elaborazione
+- Separazione chiara delle responsabilità:
+  - **GUI**: Solo orchestrazione e callbacks UI
+  - **Core**: Logica di business e calcoli
+  - **Plotting**: Rendering grafici
+  - **Widgets**: Componenti riutilizzabili
+  - **UI Builder**: Costruzione interfaccia
+- Codice più manutenibile e testabile
+- Riuso facilitato delle funzioni tra moduli
+
+### Miglioramenti grafici
+  - Massimizzata area di visualizzazione grafici
+  - Rimossi margini eccessivi su tutti e 4 i lati
+- **OmniPD Calculator**: Aggiunto `tight_layout(pad=0.5)` a tutti i grafici
+  - Coerenza visiva tra i moduli
+
 ## [0.2] - 2026-01-20
 - Refactoring completo di gui_omniPD.py:
   - Tutti i widget principali ora aggiornano i colori in base al tema selezionato tramite update_widget_styles.

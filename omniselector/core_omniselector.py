@@ -139,39 +139,6 @@ def convert_time_minutes_to_seconds(minutes_str):
         raise ValueError(f"Conversione tempo non valida: {str(e)}")
 
 
-def extract_data_from_rows(rows):
-    """
-    Estrae dati (tempo, potenza) dalle righe di input UI
-    
-    Args:
-        rows: lista di oggetti MmpRow (hanno attributi t_input, w_input)
-    
-    Returns:
-        tuple: (t_data, p_data) come array numpy
-    
-    Raises:
-        ValueError: se dati insufficienti o non validi
-    """
-    t_data = []
-    p_data = []
-    
-    for row in rows:
-        t_val = row.t_input.text().strip()
-        w_val = row.w_input.text().strip()
-        
-        if t_val and w_val:
-            try:
-                t_data.append(float(t_val))
-                p_data.append(float(w_val))
-            except ValueError as e:
-                raise ValueError(f"Valore numerico non valido: {str(e)}")
-    
-    if len(t_data) < 4:
-        raise ValueError("Inserisci almeno 4 punti validi!")
-    
-    return np.array(t_data), np.array(p_data)
-
-
 def load_data_from_file(file_path, time_col_idx=0, power_col_idx=1):
     """
     Carica dati da file CSV, XLSX o XLSM
@@ -223,3 +190,96 @@ def load_data_from_file(file_path, time_col_idx=0, power_col_idx=1):
     
     except Exception as e:
         raise ValueError(f"Errore durante il caricamento file: {str(e)}")
+
+
+# ============================================================================
+# FILTERING - Funzioni per filtraggio e selezione dati
+# ============================================================================
+
+def apply_data_filters(x_data, y_data, time_windows, percentile_min, values_per_window, sprint_value, current_params=None):
+    """
+    Applica filtri ai dati basati su finestre temporali, percentile e sprint
+    
+    Args:
+        x_data: array di tempi (s)
+        y_data: array di potenze (W)
+        time_windows: lista di tuple (tmin, tmax) in secondi
+        percentile_min: percentile minimo per selezione (0-100)
+        values_per_window: numero massimo di valori per finestra
+        sprint_value: tempo del valore sprint da includere sempre (s)
+        current_params: parametri modello esistenti [CP, Wp, Pmax, A] o None
+    
+    Returns:
+        tuple: (x_filtered, y_filtered, selected_mask)
+            - x_filtered: array tempi selezionati
+            - y_filtered: array potenze selezionate
+            - selected_mask: maschera booleana per i dati originali
+    """
+    x_arr = np.array(x_data, dtype=float)
+    y_arr = np.array(y_data, dtype=float)
+    selected_mask = np.zeros_like(x_arr, dtype=bool)
+    
+    if not time_windows:
+        selected_mask[:] = True
+        return x_arr, y_arr, selected_mask
+
+    # Fit model to all data to get residuals
+    try:
+        if current_params is not None:
+            CP, Wp, Pmax, A = current_params
+        else:
+            # Fallback: rough initial fit
+            p0 = [np.percentile(y_arr, 30), 20000, np.max(y_arr), 5]
+            params, _ = curve_fit(ompd_power, x_arr, y_arr, p0=p0, maxfev=20000)
+            CP, Wp, Pmax, A = params
+    except Exception:
+        # If fit fails, fallback to no filtering
+        selected_mask[:] = True
+        return x_arr, y_arr, selected_mask
+
+    # Calculate residuals
+    pred = (Wp / x_arr) * (1 - np.exp(-x_arr * (Pmax - CP) / Wp)) + CP
+    pred = np.where(x_arr <= TCPMAX, pred, pred - A * np.log(x_arr / TCPMAX))
+    residuals = y_arr - pred
+
+    # Global percentile threshold (only for t > 120)
+    mask_gt_120 = x_arr > 120
+    if np.any(mask_gt_120):
+        cut_global = np.percentile(residuals[mask_gt_120], percentile_min)
+    else:
+        cut_global = np.percentile(residuals, percentile_min)
+
+    selected_x = []
+    selected_y = []
+    
+    # Window selection
+    for (tmin, tmax) in time_windows:
+        mask = (x_arr >= tmin) & (x_arr <= tmax)
+        idx = np.where(mask)[0]
+        if idx.size == 0:
+            continue
+        res_window = residuals[idx]
+        # Select top N residuals above global percentile threshold
+        sorted_idx = idx[np.argsort(res_window)[::-1]]
+        count = 0
+        for i in sorted_idx:
+            if residuals[i] >= cut_global:
+                selected_x.append(x_arr[i])
+                selected_y.append(y_arr[i])
+                selected_mask[i] = True
+                count += 1
+            if count >= max(1, values_per_window):
+                break
+    
+    # Sprint selection - always add closest point to sprint value if not already selected
+    if sprint_value > 0 and len(x_arr) > 0:
+        sprint_idx = int(np.argmin(np.abs(x_arr - sprint_value)))
+        if 0 <= sprint_idx < len(selected_mask) and not selected_mask[sprint_idx]:
+            selected_x.append(x_arr[sprint_idx])
+            selected_y.append(y_arr[sprint_idx])
+            selected_mask[sprint_idx] = True
+    
+    if not selected_x:
+        raise ValueError("Nessun dato selezionato dalle finestre")
+    
+    return np.array(selected_x), np.array(selected_y), selected_mask

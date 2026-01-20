@@ -35,7 +35,7 @@ def format_plot(ax, theme="Forest Green"):
 
 def plot_ompd_curve(ax, x_data, y_data, params, theme="Forest Green"):
     """
-    Disegna il grafico OmPD principale
+    Disegna il grafico Omniselector principale
     
     Args:
         ax: Axes matplotlib
@@ -145,7 +145,7 @@ def plot_residuals(ax, x_data, residuals, RMSE, MAE, theme="Forest Green"):
     
     ax.set_xlabel("Time", color=text_color)
     ax.set_ylabel("Residuals (W)", color=text_color)
-    ax.set_title("OmPD Residuals", color=text_color, fontsize=14)
+    ax.set_title("Omniselector Residuals", color=text_color, fontsize=14)
     
     # Griglia solo sui tick maggiori
     ax.grid(which='major', linestyle='-', linewidth=0.7, alpha=0.5)
@@ -206,7 +206,7 @@ def plot_weff(ax, params, W_prime, theme="Forest Green"):
     ax.set_ylim(0, np.max(Weff_plot) * 1.1)
     ax.set_xlabel("Time", color=text_color)
     ax.set_ylabel("W'eff (J)", color=text_color)
-    ax.set_title("OmPD Effective W'", color=text_color, fontsize=14)
+    ax.set_title("Omniselector Effective W'", color=text_color, fontsize=14)
     
     x_ticks = list(range(0, 181, 30))
     ax.set_xticks(x_ticks)
@@ -222,3 +222,58 @@ def plot_weff(ax, params, W_prime, theme="Forest Green"):
              transform=ax.transAxes, fontsize=10,
              verticalalignment='top', horizontalalignment='right',
              bbox=dict(boxstyle='round', facecolor=text_color, alpha=0.9))
+
+
+def draw_time_windows(ax, time_windows, theme="Forest Green"):
+    """
+    Disegna le finestre temporali sul grafico come aree ombreggiate
+    
+    Args:
+        ax: Axes matplotlib
+        time_windows: lista di tuple (tmin, tmax) in secondi
+        theme: nome del tema da applicare
+    """
+    if not time_windows:
+        return
+    
+    colors = TEMI.get(theme, TEMI["Forest Green"])
+    shade_color = colors.get("accent", "#4ade80")
+    
+    for tmin, tmax in time_windows:
+        ax.axvspan(tmin, tmax, color=shade_color, alpha=0.08, 
+                   edgecolor=shade_color, linewidth=0.5)
+
+
+def plot_raw_points(ax, raw_x_data, raw_y_data, selected_mask=None, 
+                    overlay_selected=True, theme="Forest Green"):
+    """
+    Disegna i punti raw sul grafico, con evidenziazione dei punti selezionati
+    
+    Args:
+        ax: Axes matplotlib
+        raw_x_data: array dei tempi raw
+        raw_y_data: array delle potenze raw
+        selected_mask: maschera booleana dei punti selezionati (opzionale)
+        overlay_selected: se True, evidenzia i punti selezionati
+        theme: nome del tema da applicare
+    """
+    if raw_x_data is None or raw_y_data is None:
+        return
+    
+    colors = TEMI.get(theme, TEMI["Forest Green"])
+    raw_color = colors.get("border", "#334155")
+    
+    # Disegna tutti i punti raw
+    ax.scatter(raw_x_data, raw_y_data, color=raw_color, alpha=0.4, 
+               s=50, marker='o', zorder=2)
+    
+    # Evidenzia i punti selezionati se richiesto
+    if overlay_selected and selected_mask is not None:
+        raw_x = np.array(raw_x_data, dtype=float)
+        raw_y = np.array(raw_y_data, dtype=float)
+        sel_x = raw_x[selected_mask]
+        sel_y = raw_y[selected_mask]
+        if sel_x.size:
+            accent = colors.get("accent", "#4ade80")
+            ax.scatter(sel_x, sel_y, color=accent, alpha=0.9, s=90, 
+                      marker='x', zorder=6, linewidths=1.5)
