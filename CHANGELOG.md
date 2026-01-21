@@ -1,3 +1,33 @@
+## [0.4] - 2026-01-21
+### MetaboPower - Nuovo modulo di analisi metabolimetrica
+**Descrizione**: Modulo specializzato per l'analisi comparativa dei dati metabolimetrici (respiratori) rispetto ai dati di potenza misurata dal power meter durante test incrementali (ramp test).
+
+**Utilizzo**:
+1. **Importazione dati**: 
+   - Selezionare profilo metabolimetro (Cortex XLSX o CSV generico... nuovi in futuro)
+   - Caricare file dati respiratori (VO₂, VCO₂, RER, potenza cardiaca, ecc.)
+   - Caricare file dati FIT dal power meter (potenza in watt)
+
+2. **Cortex**:
+  A. **Selezione automatica della rampa**:
+    - Interfaccia interattiva su grafico FIT per delimitare inizio/fine rampa
+    - Click automatico per individuare transizione potenza zero → potenza effettiva
+
+  B. **Visualizzazione confronto**:
+    - Overlay temporale metabolimetro (potenza media) vs power meter
+    - Medie mobili: 1s (istantaneo), 15s (primaria), 30s (smoothed)
+    - Rilevamento automatico soglie ventilatorie (VT1, VT2, MAP) con visualizzazione verticale
+
+  C. **Analisi multi-parametro**:
+    - Tab per ogni parametro metabolico (VO₂, VCO₂, RER, FC, ecc.)
+    - Traccia della potenza sovrapposta per correlazione diretta
+    - Identificazione delle transizioni metaboliche
+
+**Caratteristiche tecniche**:
+- Architettura modulare: Parser specializzati, estrazione dati, plotting, GUI
+- Supporto multi-metabolimetro tramite profili configurabili
+- Export grafica completabile dall'utente (non ancora implementata)
+
 ## [0.3.1] - 2026-01-20
 ### Omniselector - UI Refinement
 - **Redesign della sidebar**:

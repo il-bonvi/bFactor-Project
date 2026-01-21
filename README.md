@@ -1,10 +1,10 @@
-# ⚡ bFactor Project
+# bFactor Project
 **Versione**: 0.2
 **Data Ultimo Update**: 18 Gennaio 2026  
 **Status**: ✅ In Produzione (Core Modules)
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Science](https://img.shields.io/badge/Sports_Science-Performance-orange?style=for-the-badge)](https://univr.it)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)]()
+[![Science](https://img.shields.io/badge/Sports_Science-Performance-orange?style=for-the-badge)]()
 [![Status](https://img.shields.io/badge/Status-In_Development-green?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)]()
 

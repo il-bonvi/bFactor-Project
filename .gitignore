@@ -14,3 +14,9 @@ env/
 
 # Script batch di Windows
 *.bat
+
+# File 
+zBuilding/
+*.xlsx
+*.csv
+*.fit

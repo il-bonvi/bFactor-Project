@@ -20,6 +20,7 @@ from PySide6.QtGui import QFont
 
 from PEFFORT import EffortAnalyzer
 from omniPD_calculator import OmniPDAnalyzer
+from MetaboPower import MetaboPowerApp
 from shared.styles import get_style, TEMI
 
 
@@ -27,13 +28,14 @@ class BfactorLauncher(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("bFactor Project")
-        self.setMinimumSize(1000, 700)
+        self.setMinimumSize(1000, 850)
         self.current_theme = "Forest Green"
         self.setStyleSheet(get_style(self.current_theme))
         
         self.peffort_window = None
         self.omnipd_window = None
         self.omniselector_window = None
+        self.metabopower_window = None
         
         self.setup_ui()
 
@@ -94,7 +96,7 @@ class BfactorLauncher(QWidget):
 
         # --- PULSANTE 1: PEFFORT ANALYZER ---
         self.btn_peffort = self.create_main_button(
-            "📈 PEFFORT Analyzer",
+            "📊 PEFFORT Analyzer",
             "Analisi avanzata file FIT\nSprint, sforzi sostenuti e metriche",
             "#16a34a"
         )
@@ -122,12 +124,30 @@ class BfactorLauncher(QWidget):
 
         # --- PULSANTE 4: ALTRO ---
         self.btn_nuovo = self.create_main_button(
-            "Prossimo",
-            "Prossimo strumento in sviluppo",
-            "#ea580c"
+            "🫁 MetaboPower",
+            "Confronto Metabolimetro & Power Meter",
+            "#b9531d"
         )
-        self.btn_nuovo.clicked.connect(self.show_in_development)
+        self.btn_nuovo.clicked.connect(self.open_metabopower)
         grid_main.addWidget(self.btn_nuovo, 1, 1)
+
+        # --- PULSANTE 5: WORK IN PROGRESS 1 ---
+        self.btn_wip1 = self.create_main_button(
+            "🔧 Work in Progress",
+            "Nuova funzionalità\nIn fase di sviluppo",
+            "#f59e0b"
+        )
+        self.btn_wip1.clicked.connect(self.show_in_development)
+        grid_main.addWidget(self.btn_wip1, 2, 0)
+
+        # --- PULSANTE 6: WORK IN PROGRESS 2 ---
+        self.btn_wip2 = self.create_main_button(
+            "🚀 Coming Soon",
+            "Prossima applicazione\nComing soon",
+            "#64748b"
+        )
+        self.btn_wip2.clicked.connect(self.show_in_development)
+        grid_main.addWidget(self.btn_wip2, 2, 1)
 
         main_layout.addLayout(grid_main)
         main_layout.addStretch()
@@ -163,6 +183,16 @@ class BfactorLauncher(QWidget):
             from omniselector import omniselector
             self.omniselector_window = omniselector(theme=self.current_theme)
             self.omniselector_window.showMaximized()
+
+    def open_metabopower(self):
+        """Apre la finestra MetaboPower"""
+        if self.metabopower_window is not None and self.metabopower_window.isVisible():
+            self.metabopower_window.raise_()
+            self.metabopower_window.activateWindow()
+        else:
+            app = MetaboPowerApp(theme=self.current_theme)
+            self.metabopower_window = app.run()
+            self.metabopower_window.showMaximized()
 
     def apply_theme(self, tema_nome):
         """Applica il tema selezionato al launcher e lo salva"""
