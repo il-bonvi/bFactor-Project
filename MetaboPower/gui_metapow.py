@@ -30,7 +30,7 @@ from .data_extraction_metapow import (
 )
 from .plotting_metapow import (
     create_fit_selection_plot, setup_fit_selection_click_handler,
-    create_overlaid_comparison_plot, create_vt_analysis_dialog
+    create_overlaid_comparison_plot, create_overlaid_comparison_dialog, create_vt_analysis_dialog
 )
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
@@ -421,15 +421,19 @@ class MetaboPowerGUI(QMainWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle("Seleziona Fine Rampa FIT – click sinistro sulla fine rampa")
         dialog.resize(1400, 800)
+        dialog.showMaximized()
+        dialog.setWindowFlags(
+            Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint
+        )
         
         layout = QVBoxLayout(dialog)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         # Crea grafico
         fig, ax, canvas, toolbar, status = create_fit_selection_plot(time_fit, power_fit, dialog)
         layout.addWidget(toolbar)
-        layout.addWidget(canvas)
         layout.addWidget(status)
+        layout.addWidget(canvas, stretch=1)
 
         # Setup click handler
         time_fit_np = np.array(time_fit)
@@ -528,33 +532,14 @@ class MetaboPowerGUI(QMainWindow):
         # Calcola medie mobili FIT (15s, 30s)
         fit_rolling_avgs = calculate_rolling_averages(fit_data, windows=[15, 30])
 
-        # Crea dialog e grafico
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Confronto Sovrapposto – Allineamento Fine Rampa")
-        dialog.resize(1600, 900)
-        
-        layout = QVBoxLayout(dialog)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        fig, ax = create_overlaid_comparison_plot(
+        # Crea dialog con rendering delegato a plotting_metapow
+        dialog = create_overlaid_comparison_dialog(
             met_time_aligned, met_data, fit_time_aligned, fit_data,
             self.met_end_idx, self.fit_end_idx,
-            vt1_time, vt2_time, map_time, fit_rolling_avgs
+            vt1_time, vt2_time, map_time, fit_rolling_avgs,
+            parent=self
         )
         
-        canvas = FigureCanvas(fig)
-        from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-        toolbar = NavigationToolbar(canvas, dialog)
-        layout.addWidget(toolbar)
-        layout.addWidget(canvas)
-
-        info = QLabel(
-            f"Rampa Metabolimetro: {len(met_data)} punti, durata {met_duration:.1f}s | "
-            f"Rampa Power meter: {len(fit_data)} punti, durata {fit_duration:.1f}s"
-        )
-        info.setStyleSheet("color: #64748b; font-size: 11px;")
-        layout.addWidget(info)
-
         dialog.exec()
 
     def show_vt_analysis(self):

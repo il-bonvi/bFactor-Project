@@ -18,6 +18,7 @@ from matplotlib.ticker import FuncFormatter, MultipleLocator
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget, QTabWidget
 from PySide6.QtGui import QFont
 from typing import Optional, Tuple, Callable
+from PySide6.QtCore import Qt
 
 
 def format_seconds(seconds, pos):
@@ -117,7 +118,7 @@ def create_overlaid_comparison_plot(met_time_aligned: np.ndarray, met_data: np.n
     # Etichette
     ax.set_xlabel("Tempo (minuti:secondi)", fontsize=12)
     ax.set_ylabel("Potenza (W)", fontsize=12)
-    ax.set_title("Confronto Metabolimetro vs Power Meter – Allineato all'Inizio Rampa", 
+    ax.set_title("Confronto Metabolimetro vs Power Meter", 
                  fontsize=13, fontweight="bold")
     
     # Formatter asse X: ogni minuto, formato #m
@@ -146,6 +147,57 @@ def create_overlaid_comparison_plot(met_time_aligned: np.ndarray, met_data: np.n
     return fig, ax
 
 
+def create_overlaid_comparison_dialog(met_time_aligned: np.ndarray, met_data: np.ndarray,
+                                      fit_time_aligned: np.ndarray, fit_data: np.ndarray,
+                                      met_end_idx: int, fit_end_idx: int,
+                                      vt1_time: Optional[float] = None, 
+                                      vt2_time: Optional[float] = None, 
+                                      map_time: Optional[float] = None,
+                                      fit_rolling_avgs: Optional[dict] = None,
+                                      parent = None) -> QDialog:
+    """Crea il dialog di confronto sovrapposto metabolimetro vs FIT.
+    
+    Args:
+        met_time_aligned: Tempo metabolimetro allineato
+        met_data: Potenza metabolimetro
+        fit_time_aligned: Tempo FIT allineato
+        fit_data: Potenza FIT
+        met_end_idx: Indice fine rampa metabolimetro
+        fit_end_idx: Indice fine rampa FIT
+        vt1_time: Tempo intersezione VT1 (opzionale)
+        vt2_time: Tempo intersezione VT2 (opzionale)
+        map_time: Tempo intersezione MAP (opzionale)
+        fit_rolling_avgs: Dictionary con medie mobili FIT (opzionale)
+        parent: Widget parent
+    
+    Returns:
+        QDialog configurato con grafico di confronto
+    """
+    dialog = QDialog(parent)
+    dialog.setWindowTitle("Seleziona fine rampa")
+    dialog.resize(1600, 900)
+    dialog.showMaximized()
+    dialog.setWindowFlags(
+        Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint
+    )
+    
+    layout = QVBoxLayout(dialog)
+    layout.setContentsMargins(0, 0, 0, 0)
+    
+    fig, ax = create_overlaid_comparison_plot(
+        met_time_aligned, met_data, fit_time_aligned, fit_data,
+        met_end_idx, fit_end_idx,
+        vt1_time, vt2_time, map_time, fit_rolling_avgs
+    )
+    
+    canvas = FigureCanvas(fig)
+    toolbar = NavigationToolbar(canvas, dialog)
+    layout.addWidget(toolbar)
+    layout.addWidget(canvas, stretch=1)
+    
+    return dialog
+
+
 def create_vt_analysis_dialog(metabol_data: pd.DataFrame, met_time_aligned: np.ndarray,
                                fit_time_aligned: np.ndarray, fit_data: np.ndarray,
                                vt1_time: Optional[float], vt2_time: Optional[float], 
@@ -170,17 +222,23 @@ def create_vt_analysis_dialog(metabol_data: pd.DataFrame, met_time_aligned: np.n
     """
     dialog = QDialog(parent)
     dialog.setWindowTitle("Analisi VT – Parametri Metabolici vs Power Meter")
-    dialog.resize(1800, 1000)
+    dialog.showMaximized()
+    # Rendi la finestra ridimensionabile e con le icone standard
+    dialog.setWindowFlag(Qt.WindowType.Window, True)
+    dialog.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, True)
+    dialog.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)
+    dialog.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
     
     main_layout = QVBoxLayout(dialog)
     main_layout.setContentsMargins(10, 10, 10, 10)
     
     tab_widget = QTabWidget()
     
-    # Ottieni colonne numeriche
-    numeric_cols = metabol_data.select_dtypes(include=['number']).columns.tolist()
+    # Ottieni colonne numeriche ed escludi tutte le varianti di WR, Watt, Power, Work Rate
+    # Escludi solo la colonna 'WR (W)'
+    numeric_cols = [col for col in metabol_data.select_dtypes(include=['number']).columns.tolist() if col.strip().lower() != 'wr (w)']
     
-    # Crea un tab per ogni colonna metabolica
+    # Crea un tab per ogni colonna metabolica (escludendo WR)
     for col_name in numeric_cols:
         try:
             col_data = pd.to_numeric(metabol_data[col_name], errors='coerce').fillna(0).values
