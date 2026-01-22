@@ -8,7 +8,7 @@
 """
 CORTEX_METAPOW.PY - Parser per Cortex XLSX
 Gestisce l'importazione di file XLSX da Cortex Metabolic System
-Estrae: intestazioni (riga 117), dati (da riga 119), metadati paziente (celle specifiche)
+Estrae: intestazioni (riga 117), dati (da riga 119), metadati soggetto (celle specifiche)
 """
 
 import pandas as pd
@@ -84,7 +84,7 @@ class CortexMetabolitParser:
             }
     
     def _extract_metadata(self, ws, metadata_cells: Dict) -> None:
-        """Estrae metadati paziente dalle celle specificate (es. C27, C28, C110)"""
+        """Estrae metadati soggetto dalle celle specificate (es. C27, C28, C110)"""
         for key, cell_ref in metadata_cells.items():
             try:
                 value = ws[cell_ref].value

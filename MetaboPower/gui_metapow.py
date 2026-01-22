@@ -209,8 +209,8 @@ class MetaboPowerGUI(QMainWindow):
         self.metadata_text = QTextEdit()
         self.metadata_text.setReadOnly(True)
         self.metadata_text.setMaximumHeight(80)
-        self.metadata_text.setText("Metadati paziente (XLSX): -")
-        analysis_layout.addWidget(QLabel("Informazioni Paziente:"))
+        self.metadata_text.setText("Metadati soggetto (XLSX): -")
+        analysis_layout.addWidget(QLabel("Informazioni Soggetto:"))
         analysis_layout.addWidget(self.metadata_text)
         
         # Tabella anteprima dati
@@ -317,9 +317,9 @@ class MetaboPowerGUI(QMainWindow):
             )
     
     def _process_metadata(self, metadata: dict, available_profiles: dict, profile_name: str):
-        """Processa e visualizza i metadati paziente"""
+        """Processa e visualizza i metadati soggetto"""
         if metadata:
-            metadata_str = "Paziente: "
+            metadata_str = "Soggetto: "
             if metadata.get("nome"):
                 metadata_str += f"{metadata.get('nome')} {metadata.get('cognome')} | "
             metadata_str += f"D.N.: {metadata.get('data_nascita')} | "
@@ -365,7 +365,7 @@ class MetaboPowerGUI(QMainWindow):
             if metadata.get("ramp_start_index") is not None:
                 self.met_ramp_start_idx = int(metadata["ramp_start_index"])
         else:
-            self.metadata_text.setText("Metadati paziente: - (profilo senza metadati)")
+            self.metadata_text.setText("Metadati soggetto: - (profilo senza metadati)")
     
     def load_fit_file(self):
         """Carica il file FIT del power meter e mostra grafico per selezione fine"""
@@ -419,7 +419,7 @@ class MetaboPowerGUI(QMainWindow):
 
         # Crea dialog
         dialog = QDialog(self)
-        dialog.setWindowTitle("Seleziona Fine Rampa FIT – click sinistro sulla fine rampa")
+        dialog.setWindowTitle("Seleziona Fine Rampa FIT")
         dialog.resize(1400, 800)
         dialog.showMaximized()
         dialog.setWindowFlags(

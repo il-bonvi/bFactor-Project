@@ -46,13 +46,41 @@ def create_fit_selection_plot(time_fit: np.ndarray, power_fit: np.ndarray,
     ax.plot(time_fit, power_fit, label="Power meter", color="#2563eb", linewidth=2)
     ax.set_xlabel("Tempo" if time_fit is not None else "Indice", fontsize=11)
     ax.set_ylabel("Potenza (W)", fontsize=11)
+    ax.set_title("Seleziona Fine Rampa FIT", fontsize=13, fontweight="bold")
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.2)
+
+    # --- ZOOM PREDEFINITO: 2 minuti con media watt più alta, centrati, mostra anche 30s dopo ---
+    try:
+        # Assumiamo che time_fit sia in secondi e ordinato
+        window_sec = 120  # 2 minuti
+        post_sec = 30     # 30 secondi dopo
+        if len(time_fit) > 0 and len(power_fit) == len(time_fit):
+            # Calcola rolling mean su finestre di 2 minuti
+            time_np = np.array(time_fit)
+            power_np = np.array(power_fit)
+            # Trova la differenza media tra i punti per step
+            dt = np.median(np.diff(time_np)) if len(time_np) > 1 else 1.0
+            win_size = max(1, int(window_sec / dt))
+            if win_size < len(power_np):
+                rolling = np.convolve(power_np, np.ones(win_size)/win_size, mode='valid')
+                idx_max = np.argmax(rolling)
+                # Trova il centro della finestra
+                idx_center = idx_max + win_size // 2
+                t_center = time_np[idx_center]
+                t_start = t_center - window_sec/2
+                t_end = t_center + window_sec/2 + post_sec
+                # Limita ai dati disponibili
+                t_start = max(time_np[0], t_start)
+                t_end = min(time_np[-1], t_end)
+                ax.set_xlim(left=t_start, right=t_end)
+    except Exception as e:
+        print(f"[DEBUG] Errore zoom automatico: {e}")
+
     fig.tight_layout()
     
     status = QLabel("Clicca sulla fine rampa (click sinistro) quindi chiudi la finestra")
     status.setStyleSheet("font-weight: bold; color: #2563eb; font-size: 12px;")
-    
     return fig, ax, canvas, toolbar, status
 
 
@@ -174,7 +202,7 @@ def create_overlaid_comparison_dialog(met_time_aligned: np.ndarray, met_data: np
         QDialog configurato con grafico di confronto
     """
     dialog = QDialog(parent)
-    dialog.setWindowTitle("Seleziona fine rampa")
+    dialog.setWindowTitle("Confronto Metabolimetro vs Power Meter")
     dialog.resize(1600, 900)
     dialog.showMaximized()
     dialog.setWindowFlags(

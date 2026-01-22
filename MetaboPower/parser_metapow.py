@@ -28,7 +28,7 @@ class MetabolitDataParser:
     Metodi principali:
     - load_file_with_profile(): Caricamento con profilo esplicito
     - get_data(): Ritorna DataFrame caricato
-    - get_metadata(): Ritorna metadati paziente
+    - get_metadata(): Ritorna metadati soggetto
     """
     
     def __init__(self):
@@ -87,7 +87,7 @@ class MetabolitDataParser:
         return self.data
     
     def get_metadata(self) -> Dict:
-        """Ritorna i metadati paziente"""
+        """Ritorna i metadati soggetto"""
         return self.metadata
     
     def get_summary(self) -> Dict:
