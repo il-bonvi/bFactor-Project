@@ -9,18 +9,25 @@
 OmniPD Events - Handler per interazioni con i grafici (hover, click, ecc.)
 """
 
+import logging
 import numpy as np
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .gui_omniPD import OmniPDAnalyzer
 
 try:
     from .core_omniPD import ompd_power, _format_time_label
 except ImportError:
     from omniPD_calculator.core_omniPD import ompd_power, _format_time_label
 
+logger = logging.getLogger(__name__)
+
 
 class OmniPDEventHandler:
     """Gestore degli eventi di interazione per i grafici OmniPD"""
     
-    def __init__(self, analyzer):
+    def __init__(self, analyzer: 'OmniPDAnalyzer') -> None:
         """
         Inizializza l'event handler
         
@@ -29,7 +36,7 @@ class OmniPDEventHandler:
         """
         self.analyzer = analyzer
     
-    def connect_ompd_hover(self):
+    def connect_ompd_hover(self) -> None:
         """Connette gli eventi di hover per il grafico OmPD"""
         if self.analyzer.cid_ompd is not None:
             self.analyzer.canvas1.mpl_disconnect(self.analyzer.cid_ompd)
@@ -38,10 +45,9 @@ class OmniPDEventHandler:
             'motion_notify_event', self._on_ompd_hover
         )
     
-    def _on_ompd_hover(self, event):
+    def _on_ompd_hover(self, event) -> None:
         """Gestisce il movimento del mouse sul grafico OmPD"""
         if event.inaxes != self.analyzer.ax1 or self.analyzer.params is None:
-            # Rimuovi annotazioni se fuori dall'asse
             if self.analyzer.hover_ann_points is not None:
                 self.analyzer.hover_ann_points.remove()
                 self.analyzer.hover_ann_points = None
@@ -51,19 +57,16 @@ class OmniPDEventHandler:
             self.analyzer.canvas1.draw_idle()
             return
         
-        # Ottieni coordinate mouse
         x_mouse = event.xdata
         if x_mouse is None:
             return
         
         CP, W_prime, Pmax, A = self.analyzer.params
         
-        # Rimuovi vecchia annotazione sulla curva
         if self.analyzer.ann_curve is not None:
             self.analyzer.ann_curve.remove()
             self.analyzer.ann_curve = None
         
-        # Aggiungi annotazione per la curva nel punto x_mouse
         try:
             y_curve = ompd_power(x_mouse, CP, W_prime, Pmax, A)
             self.analyzer.ann_curve = self.analyzer.ax1.annotate(
@@ -76,20 +79,17 @@ class OmniPDEventHandler:
                 color='white',
                 weight='bold'
             )
-        except:
-            pass
+        except (ValueError, TypeError, RuntimeError) as e:
+            logger.warning(f"Hover annotation failed: {e}")
         
-        # Hover sui punti inseriti
         if self.analyzer.hover_ann_points is not None:
             self.analyzer.hover_ann_points.remove()
             self.analyzer.hover_ann_points = None
         
-        # Trova il punto più vicino al mouse
         distances = np.abs(self.analyzer.x_data - x_mouse)
         closest_idx = np.argmin(distances)
         closest_dist = distances[closest_idx]
         
-        # Se abbastanza vicino, mostra annotazione
         if closest_dist < max(self.analyzer.x_data) * 0.05:
             x_point = self.analyzer.x_data[closest_idx]
             y_point = self.analyzer.y_data[closest_idx]
@@ -106,7 +106,7 @@ class OmniPDEventHandler:
         
         self.analyzer.canvas1.draw_idle()
     
-    def connect_residuals_hover(self):
+    def connect_residuals_hover(self) -> None:
         """Connette gli eventi di hover per il grafico residui"""
         if self.analyzer.cid_residuals is not None:
             self.analyzer.canvas2.mpl_disconnect(self.analyzer.cid_residuals)
@@ -115,7 +115,7 @@ class OmniPDEventHandler:
             'motion_notify_event', self._on_residuals_hover
         )
     
-    def _on_residuals_hover(self, event):
+    def _on_residuals_hover(self, event) -> None:
         """Gestisce il movimento del mouse sul grafico residui"""
         if event.inaxes != self.analyzer.ax2:
             if self.analyzer.hover_ann_residuals is not None:
@@ -132,7 +132,6 @@ class OmniPDEventHandler:
             self.analyzer.hover_ann_residuals.remove()
             self.analyzer.hover_ann_residuals = None
         
-        # Trova il punto più vicino
         distances = np.abs(self.analyzer.x_data - x_mouse)
         closest_idx = np.argmin(distances)
         closest_dist = distances[closest_idx]

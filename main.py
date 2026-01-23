@@ -127,7 +127,7 @@ class BfactorLauncher(QWidget):
         # --- PULSANTE 4: ALTRO ---
         self.btn_nuovo = self.create_main_button(
             "🫁 MetaboPower",
-            "Confronto Metabolimetro & Power Meter",
+            "Confronto Metabolimetro - Power Meter",
             "#b9531d"
         )
         self.btn_nuovo.clicked.connect(self.open_metabopower)

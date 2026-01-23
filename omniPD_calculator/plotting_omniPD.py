@@ -9,9 +9,15 @@
 OmniPD Plotting - Funzioni per creazione e aggiornamento grafici
 """
 
+import logging
+from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.ticker import FixedLocator, FuncFormatter
+from numpy.typing import NDArray
+
+logger = logging.getLogger(__name__)
 
 try:
     from .core_omniPD import ompd_power, ompd_power_short, w_eff, _format_time_label, TCPMAX
@@ -21,11 +27,16 @@ except ImportError:
     from shared.styles import TEMI
 
 
-def format_plot(ax, theme="Forest Green"):
-    """Formattazione comune per tutti i plot"""
+def format_plot(ax: Axes, theme: str = "Forest Green") -> None:
+    """
+    Formattazione comune per tutti i plot.
+    
+    Args:
+        ax: Matplotlib Axes object
+        theme: Nome del tema da applicare
+    """
     colors = TEMI.get(theme, TEMI["Forest Green"])
     
-    # Usa il colore del background dal tema, o default scuro
     bg_color = colors.get("bg", "#061f17")
     border_color = colors.get("border", "#334155")
     text_color = colors.get("text", "#f1f5f9")
@@ -37,16 +48,17 @@ def format_plot(ax, theme="Forest Green"):
     ax.grid(True, alpha=0.1)
 
 
-def plot_ompd_curve(ax, x_data, y_data, params, theme="Forest Green"):
+def plot_ompd_curve(ax: Axes, x_data: NDArray[np.float64], y_data: NDArray[np.float64], 
+                    params: Tuple[float, float, float, float], theme: str = "Forest Green") -> None:
     """
-    Disegna il grafico OmPD principale
+    Disegna il grafico OmPD principale con curve e dati inseriti.
     
     Args:
-        ax: Axes matplotlib
-        x_data: array dei tempi (s)
-        y_data: array delle potenze (W)
-        params: tuple (CP, W_prime, Pmax, A)
-        theme: nome del tema da applicare
+        ax: Matplotlib Axes object
+        x_data: Array dei tempi in secondi
+        y_data: Array delle potenze in Watt
+        params: Tuple (CP, W_prime, Pmax, A)
+        theme: Nome del tema da applicare
     """
     ax.clear()
     format_plot(ax, theme)
@@ -112,17 +124,18 @@ def plot_ompd_curve(ax, x_data, y_data, params, theme="Forest Green"):
                labelcolor=text_color, loc='lower left', fontsize=9)
 
 
-def plot_residuals(ax, x_data, residuals, RMSE, MAE, theme="Forest Green"):
+def plot_residuals(ax: Axes, x_data: NDArray[np.float64], residuals: NDArray[np.float64], 
+                   RMSE: float, MAE: float, theme: str = "Forest Green") -> None:
     """
-    Disegna il grafico dei residui
+    Disegna il grafico dei residui con metriche.
     
     Args:
-        ax: Axes matplotlib
-        x_data: array dei tempi (s)
-        residuals: array dei residui
-        RMSE: errore quadratico medio
-        MAE: errore medio assoluto
-        theme: nome del tema da applicare
+        ax: Matplotlib Axes object
+        x_data: Array dei tempi in secondi
+        residuals: Array dei residui
+        RMSE: Errore quadratico medio
+        MAE: Errore medio assoluto
+        theme: Nome del tema da applicare
     """
     ax.clear()
     format_plot(ax, theme)
@@ -162,15 +175,16 @@ def plot_residuals(ax, x_data, residuals, RMSE, MAE, theme="Forest Green"):
              bbox=dict(boxstyle='round', facecolor=text_color, alpha=0.9))
 
 
-def plot_weff(ax, params, W_prime, theme="Forest Green"):
+def plot_weff(ax: Axes, params: Tuple[float, float, float, float], W_prime: float, 
+              theme: str = "Forest Green") -> None:
     """
-    Disegna il grafico W'eff (Effective W')
+    Disegna il grafico W'eff (Capacità anaerobica effettiva utilizzata nel tempo).
     
     Args:
-        ax: Axes matplotlib
-        params: tuple (CP, W_prime, Pmax, A)
-        W_prime: valore di W'
-        theme: nome del tema da applicare
+        ax: Matplotlib Axes object
+        params: Tuple (CP, W_prime, Pmax, A)
+        W_prime: Valore di W' (ridondante in params ma esplicito)
+        theme: Nome del tema da applicare
     """
     ax.clear()
     format_plot(ax, theme)

@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QPushButton, QFrame, QScrollArea,
                              QMessageBox, QTabWidget, QFileDialog,
                              QDialog, QComboBox, QGridLayout)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
@@ -51,6 +51,28 @@ except ImportError:
         return "background-color: #061f17; color: white;"
 
 
+# Worker thread per calcoli lunghi
+class OmniPDCalculationWorker(QThread):
+    """Thread worker per eseguire i calcoli OmniPD senza bloccare l'UI"""
+    finished = Signal()
+    error = Signal(str)
+    result_ready = Signal(dict)
+    
+    def __init__(self, x_data, y_data):
+        super().__init__()
+        self.x_data = x_data
+        self.y_data = y_data
+    
+    def run(self):
+        try:
+            result = calculate_omnipd_model(self.x_data, self.y_data)
+            self.result_ready.emit(result)
+            self.finished.emit()
+        except Exception as e:
+            self.error.emit(str(e))
+            self.finished.emit()
+
+
 class OmniPDAnalyzer(QWidget):
     def __init__(self, theme=None):
         super().__init__()
@@ -68,6 +90,10 @@ class OmniPDAnalyzer(QWidget):
         self.residuals = None
         self.RMSE = None
         self.MAE = None
+        
+        # Worker thread per calcoli
+        self.calc_worker = None
+        self.calc_thread = None
         
         # Variabili per hover
         self.hover_ann_points = None
@@ -87,36 +113,37 @@ class OmniPDAnalyzer(QWidget):
         
         self.setup_ui()
 
-    def setup_ui(self):
+    def setup_ui(self) -> None:
+        """Setup UI principale - orchestra la creazione dei diversi pannelli"""
         self.main_layout = QHBoxLayout(self)
-
-        # --- SIDEBAR SINISTRA ---
-        self.sidebar = QVBoxLayout()
         
-        lbl_title = QLabel("OMNIPD INPUT")
-        self.lbl_title = lbl_title  # Salva riferimento per aggiornamento tema
-        self.sidebar.addWidget(lbl_title)
+        # Crea sidebar e area destra
+        self.sidebar = QVBoxLayout()
+        self._create_sidebar()
+        
+        right_layout = QVBoxLayout()
+        self._create_right_panel(right_layout)
+        
+        self.main_layout.addLayout(self.sidebar, 1)
+        self.main_layout.addLayout(right_layout, 3)
+        
+        # Applica gli stili iniziali
+        self.update_widget_styles()
+        self.load_initial_points()
 
-        # Theme Selector
-        '''self.theme_selector = QComboBox()
-        self.theme_selector.addItems(list(TEMI.keys()))
-        self.theme_selector.setCurrentText(self.current_theme)
-        self.theme_selector.currentTextChanged.connect(self.apply_selected_theme)
-        self.sidebar.addWidget(self.theme_selector)'''
+    def _create_sidebar(self) -> None:
+        """Crea il pannello laterale sinistro con input e controlli"""
+        # Titolo
+        lbl_title = QLabel("OMNIPD INPUT")
+        self.lbl_title = lbl_title
+        self.sidebar.addWidget(lbl_title)
 
         self.info_lbl = QLabel("One must be sprint power (best 1-10s)\nMinimum 4 points!!")
         self.info_lbl.setAlignment(Qt.AlignCenter)
         self.sidebar.addWidget(self.info_lbl)
 
         # Area Input Scrollabile
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
-        self.container = QWidget()
-        self.scroll_layout = QVBoxLayout(self.container)
-        self.scroll_layout.setAlignment(Qt.AlignTop)
-        self.scroll.setWidget(self.container)
-        self.sidebar.addWidget(self.scroll)
+        self._create_input_area()
 
         # Pulsanti gestione righe
         btn_row_layout = QHBoxLayout()
@@ -128,17 +155,44 @@ class OmniPDAnalyzer(QWidget):
         btn_row_layout.addWidget(self.btn_remove)
         self.sidebar.addLayout(btn_row_layout)
 
-        # CONVERTITORE
+        # Convertitore tempo
+        self._create_converter_box()
+
+        # Bottoni azione
+        self.btn_calc = QPushButton("⚙️ ELABORA MODELLO")
+        self.btn_calc.clicked.connect(self.run_calculation)
+        self.sidebar.addWidget(self.btn_calc)
+
+        self.btn_import = QPushButton("📁 IMPORT CSV")
+        self.btn_import.clicked.connect(self.import_file)
+        self.sidebar.addWidget(self.btn_import)
+
+        # Risultati
+        self._create_results_box()
+
+    def _create_input_area(self) -> None:
+        """Crea area input scrollabile per righe MMP"""
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+        self.container = QWidget()
+        self.scroll_layout = QVBoxLayout(self.container)
+        self.scroll_layout.setAlignment(Qt.AlignTop)
+        self.scroll.setWidget(self.container)
+        self.sidebar.addWidget(self.scroll)
+
+    def _create_converter_box(self) -> None:
+        """Crea box convertitore minuti-secondi"""
         self.conv_box = QFrame()
         self.conv_box.setObjectName("converter_box")
         conv_l = QVBoxLayout(self.conv_box)
         conv_l.setContentsMargins(12, 10, 12, 10)
         conv_l.setSpacing(8)
-        # Titolo converter
+        
         self.conv_title = QLabel("⚡ Quick Converter")
         self.conv_title.setAlignment(Qt.AlignCenter)
         conv_l.addWidget(self.conv_title)
-        # Input/Output layout
+        
         input_h = QHBoxLayout()
         input_h.setSpacing(10)
         self.min_in = QLineEdit()
@@ -153,17 +207,8 @@ class OmniPDAnalyzer(QWidget):
         conv_l.addLayout(input_h)
         self.sidebar.addWidget(self.conv_box)
 
-        # Bottone Calcola
-        self.btn_calc = QPushButton("⚙️ ELABORA MODELLO")
-        self.btn_calc.clicked.connect(self.run_calculation)
-        self.sidebar.addWidget(self.btn_calc)
-
-        # Bottone Import CSV
-        self.btn_import = QPushButton("📁 IMPORT CSV")
-        self.btn_import.clicked.connect(self.import_file)
-        self.sidebar.addWidget(self.btn_import)
-
-        # Risultati
+    def _create_results_box(self) -> None:
+        """Crea box risultati con parametri e metriche"""
         self.res_box = QFrame()
         res_l = QGridLayout(self.res_box)
         res_l.setSpacing(8)
@@ -175,39 +220,21 @@ class OmniPDAnalyzer(QWidget):
         self.lbl_rmse = QLabel("RMSE: -- W")
         self.lbl_mae = QLabel("MAE: -- W")
         
-        # Colonna 1 (sinistra): CP, W', Pmax, A
         res_l.addWidget(self.lbl_cp, 0, 0)
         res_l.addWidget(self.lbl_wprime, 1, 0)
         res_l.addWidget(self.lbl_pmax, 2, 0)
         res_l.addWidget(self.lbl_a, 3, 0)
-        
-        # Colonna 2 (destra): RMSE, MAE
         res_l.addWidget(self.lbl_rmse, 0, 1)
         res_l.addWidget(self.lbl_mae, 1, 1)
         
         self.sidebar.addWidget(self.res_box)
 
-        # --- AREA DESTRA (TabWidget) ---
-        right_layout = QVBoxLayout()
-
-        self.tab_widget = QTabWidget()
-        
-        # Tab 1: OmPD Curve
-        self.create_ompd_tab()
-        
-        # Tab 2: Residuals
-        self.create_residuals_tab()
-        
-        # Tab 3: W'eff
-        self.create_weff_tab()
-
-        self.main_layout.addLayout(self.sidebar, 1)
-        self.main_layout.addLayout(right_layout, 3)
-        
+    def _create_right_panel(self, right_layout: QVBoxLayout) -> None:
+        """Crea pannello destro con tab e selector tema"""
         # Theme Selector in alto a destra
         theme_layout = QHBoxLayout()
-        theme_layout.addStretch()  # Spinge il selector a destra
-    
+        theme_layout.addStretch()
+        
         self.theme_selector = QComboBox()
         self.theme_selector.addItems(list(TEMI.keys()))
         self.theme_selector.setCurrentText(self.current_theme)
@@ -226,17 +253,17 @@ class OmniPDAnalyzer(QWidget):
             }
         """)
         theme_layout.addWidget(self.theme_selector)
-        
         right_layout.addLayout(theme_layout)
+        
+        # Tab widget con grafici
+        self.tab_widget = QTabWidget()
+        self._create_ompd_tab()
+        self._create_residuals_tab()
+        self._create_weff_tab()
         right_layout.addWidget(self.tab_widget)
 
-        # Applica gli stili iniziali
-        self.update_widget_styles()
-        
-        self.load_initial_points()
-
-    def create_ompd_tab(self):
-        """Crea il tab principale OmPD"""
+    def _create_ompd_tab(self) -> None:
+        """Crea tab principale OmPD Curve"""
         tab1 = QWidget()
         layout1 = QVBoxLayout(tab1)
         
@@ -247,20 +274,16 @@ class OmniPDAnalyzer(QWidget):
         self.canvas1 = FigureCanvas(self.figure1)
         self.ax1 = self.figure1.add_subplot(111)
         format_plot(self.ax1, self.current_theme)
-        
-        # Rimuovi margini per massimizzare l'area del grafico
         self.figure1.tight_layout(pad=0.5)
         
-        # Toolbar
         toolbar1 = NavigationToolbar(self.canvas1, tab1)
-        
         layout1.addWidget(toolbar1)
         layout1.addWidget(self.canvas1)
         
         self.tab_widget.addTab(tab1, "OmPD Curve")
 
-    def create_residuals_tab(self):
-        """Crea il tab dei residui"""
+    def _create_residuals_tab(self) -> None:
+        """Crea tab residui"""
         tab2 = QWidget()
         layout2 = QVBoxLayout(tab2)
         
@@ -271,20 +294,16 @@ class OmniPDAnalyzer(QWidget):
         self.canvas2 = FigureCanvas(self.figure2)
         self.ax2 = self.figure2.add_subplot(111)
         format_plot(self.ax2, self.current_theme)
-        
-        # Rimuovi margini per massimizzare l'area del grafico
         self.figure2.tight_layout(pad=0.5)
         
-        # Toolbar
         toolbar2 = NavigationToolbar(self.canvas2, tab2)
-        
         layout2.addWidget(toolbar2)
         layout2.addWidget(self.canvas2)
         
         self.tab_widget.addTab(tab2, "Residuals")
 
-    def create_weff_tab(self):
-        """Crea il tab W'eff"""
+    def _create_weff_tab(self) -> None:
+        """Crea tab W'eff"""
         tab3 = QWidget()
         layout3 = QVBoxLayout(tab3)
         
@@ -295,13 +314,9 @@ class OmniPDAnalyzer(QWidget):
         self.canvas3 = FigureCanvas(self.figure3)
         self.ax3 = self.figure3.add_subplot(111)
         format_plot(self.ax3, self.current_theme)
-        
-        # Rimuovi margini per massimizzare l'area del grafico
         self.figure3.tight_layout(pad=0.5)
         
-        # Toolbar
         toolbar3 = NavigationToolbar(self.canvas3, tab3)
-        
         layout3.addWidget(toolbar3)
         layout3.addWidget(self.canvas3)
         
@@ -478,6 +493,7 @@ class OmniPDAnalyzer(QWidget):
             QMessageBox.critical(self, "Errore Calcolo", str(e))
 
     def run_calculation(self):
+        """Avvia il calcolo del modello in un thread separato"""
         # Pulisci vecchie connessioni di hover
         if self.cid_ompd is not None:
             self.canvas1.mpl_disconnect(self.cid_ompd)
@@ -490,11 +506,72 @@ class OmniPDAnalyzer(QWidget):
             # Estrai dati dalle righe UI
             self.x_data, self.y_data = extract_data_from_rows(self.rows)
             
-            # Calcola il modello
-            self._calculate_model()
+            # Arresta il thread precedente se ancora in esecuzione
+            if self.calc_thread is not None and self.calc_thread.isRunning():
+                self.calc_thread.quit()
+                self.calc_thread.wait()
+            
+            # Crea e avvia il worker thread per il calcolo
+            self.btn_calc.setEnabled(False)
+            self.btn_calc.setText("⏳ Calcolo in corso...")
+            
+            self.calc_worker = OmniPDCalculationWorker(self.x_data, self.y_data)
+            self.calc_thread = QThread()
+            self.calc_worker.moveToThread(self.calc_thread)
+            
+            # Connetti i segnali
+            self.calc_thread.started.connect(self.calc_worker.run)
+            self.calc_worker.result_ready.connect(self._on_calculation_result)
+            self.calc_worker.error.connect(self._on_calculation_error)
+            self.calc_worker.finished.connect(self._on_calculation_finished)
+            
+            # Avvia il thread
+            self.calc_thread.start()
 
         except Exception as e:
             QMessageBox.critical(self, "Errore Calcolo", str(e))
+            self.btn_calc.setEnabled(True)
+            self.btn_calc.setText("⚙️ ELABORA MODELLO")
+    
+    def _on_calculation_result(self, result: dict):
+        """Callback quando il calcolo è completato con successo"""
+        try:
+            # Estrai i risultati
+            self.params = result['params']
+            self.residuals = result['residuals']
+            self.RMSE = result['RMSE']
+            self.MAE = result['MAE']
+            
+            CP = result['CP']
+            W_prime = result['W_prime']
+            Pmax = result['Pmax']
+            A = result['A']
+
+            # Aggiornamento Label
+            self.lbl_cp.setText(f"CP: {CP:.0f} W")
+            self.lbl_wprime.setText(f"W': {W_prime:.0f} J")
+            self.lbl_pmax.setText(f"Pmax: {Pmax:.0f} W")
+            self.lbl_a.setText(f"A: {A:.2f}")
+            self.lbl_rmse.setText(f"RMSE: {self.RMSE:.2f} W")
+            self.lbl_mae.setText(f"MAE: {self.MAE:.2f} W")
+
+            # Aggiornamento Grafici
+            self.update_ompd_plot()
+            self.update_residuals_plot()
+            self.update_weff_plot()
+        except Exception as e:
+            QMessageBox.critical(self, "Errore", f"Errore nell'elaborazione dei risultati: {str(e)}")
+    
+    def _on_calculation_error(self, error_msg: str):
+        """Callback quando il calcolo fallisce"""
+        QMessageBox.critical(self, "Errore Calcolo", error_msg)
+    
+    def _on_calculation_finished(self):
+        """Callback quando il calcolo è terminato (con successo o errore)"""
+        self.btn_calc.setEnabled(True)
+        self.btn_calc.setText("⚙️ ELABORA MODELLO")
+        if self.calc_thread is not None:
+            self.calc_thread.quit()
 
     def update_ompd_plot(self):
         """Aggiorna il grafico OmPD principale"""
