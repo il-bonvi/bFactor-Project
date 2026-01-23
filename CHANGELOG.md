@@ -1,3 +1,20 @@
+## [0.5] - 2026-01-23
+### bTeam - Dashboard squadre/atleti (prototipo)
+- Gestione squadre, atleti e attività con database locale (SQLite, SQLAlchemy)
+- CRUD completo per squadre e atleti, filtro per squadra
+- Dettaglio atleta con campi opzionali: data di nascita, peso, altezza, CP, W', note
+- Salvataggio e visualizzazione API key Intervals.icu per ogni atleta
+- Integrazione Intervals.icu (placeholder, import allenamenti in arrivo)
+- Inserimento manuale attività
+- Configurazione storage locale tramite bteam_config.json (in .gitignore)
+- Tutti i dati sensibili restano locali
+
+## [0.4.1] - 2026-01-22
+### MetaboPower - Grafici e confronto VT1
+- Aggiunti grafici di confronto VT1 tra parametri metabolici e potenza
+- Tabella riassuntiva confronto VT1 (valori, differenze, note)
+- Migliorata visualizzazione soglie ventilatorie
+
 ## [0.4] - 2026-01-21
 ### MetaboPower - Nuovo modulo di analisi metabolimetrica
 **Descrizione**: Modulo specializzato per l'analisi comparativa dei dati metabolimetrici (respiratori) rispetto ai dati di potenza misurata dal power meter durante test incrementali (ramp test).

@@ -6,3 +6,5 @@ plotly
 PySide6
 fitparse
 xhtml2pdf
+requests
+sqlalchemy

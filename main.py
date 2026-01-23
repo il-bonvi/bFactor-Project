@@ -21,6 +21,7 @@ from PySide6.QtGui import QFont
 from PEFFORT import EffortAnalyzer
 from omniPD_calculator import OmniPDAnalyzer
 from MetaboPower import MetaboPowerApp
+from bTeam import BTeamApp
 from shared.styles import get_style, TEMI
 
 
@@ -36,6 +37,7 @@ class BfactorLauncher(QWidget):
         self.omnipd_window = None
         self.omniselector_window = None
         self.metabopower_window = None
+        self.bteam_window = None
         
         self.setup_ui()
 
@@ -105,7 +107,7 @@ class BfactorLauncher(QWidget):
 
         # --- PULSANTE 2: OMNISELECTOR ---
         self.btn_omniselector = self.create_main_button(
-            "🎯 Omniselector",
+            "🧮 Omniselector",
             "Selezione e validazione dati\nIn fase di sviluppo",
             "#2563eb"
         )
@@ -132,13 +134,13 @@ class BfactorLauncher(QWidget):
         grid_main.addWidget(self.btn_nuovo, 1, 1)
 
         # --- PULSANTE 5: WORK IN PROGRESS 1 ---
-        self.btn_wip1 = self.create_main_button(
-            "🔧 Work in Progress",
-            "Nuova funzionalità\nIn fase di sviluppo",
+        self.btn_bteam = self.create_main_button(
+            "👥 bTeam",
+            "Prossima app in sviluppo (LENTO)",
             "#f59e0b"
         )
-        self.btn_wip1.clicked.connect(self.show_in_development)
-        grid_main.addWidget(self.btn_wip1, 2, 0)
+        self.btn_bteam.clicked.connect(self.open_bteam)
+        grid_main.addWidget(self.btn_bteam, 2, 0)
 
         # --- PULSANTE 6: WORK IN PROGRESS 2 ---
         self.btn_wip2 = self.create_main_button(
@@ -193,6 +195,14 @@ class BfactorLauncher(QWidget):
             app = MetaboPowerApp(theme=self.current_theme)
             self.metabopower_window = app.run()
             self.metabopower_window.showMaximized()
+
+    def open_bteam(self):
+        if self.bteam_window is not None and self.bteam_window.isVisible():
+            self.bteam_window.raise_()
+            self.bteam_window.activateWindow()
+        else:
+            self.bteam_window = BTeamApp(theme=self.current_theme)
+            self.bteam_window.showMaximized()
 
     def apply_theme(self, tema_nome):
         """Applica il tema selezionato al launcher e lo salva"""

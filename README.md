@@ -1,6 +1,6 @@
 # bFactor Project
-**Versione**: 0.2
-**Data Ultimo Update**: 18 Gennaio 2026  
+**Versione**: 0.5
+**Data Ultimo Update**: 23 Gennaio 2026  
 **Status**: ✅ In Produzione (Core Modules)
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)]()
@@ -29,7 +29,27 @@ Analisi automatizzata dei file di allenamento provenienti dai ciclocomputer.
 Modellazione avanzata della curva Potenza-Durata.
 * **Modello OmniPD:** Il modello OmniPD implementato è un modello unificato per descrivere l’intero profilo MMP, dagli sprint massimali agli sforzi di endurance prolungata. Integra Pmax, CP e W' in una formulazione fisiologicamente coerente, superando i limiti del modello CP classico alle durate brevi e molto lunghe. Introduce il concetto di W' efficace, che limita realisticamente l’espressione della riserva anaerobica nelle durate brevi e preserva W' come capacità fissa nel dominio severo. Per durate >30 min incorpora un termine log-lineare di fatica a lungo termine, migliorando l’accuratezza su dati MMP real-world. Il risultato è un modello continuo, interpretabile e robusto, adatto sia all’analisi scientifica sia all’applicazione pratica nel training e nel performance profiling. https://pubmed.ncbi.nlm.nih.gov/32131692/
 
-### 3. 🚧 Work in Proggress
+### 3. 🧮 Omniselector
+Filtraggio avanzato dei dati di una curva di potenza per l’analisi della curva CP (modello OmniPD) su subset specifici.
+* **Filtri personalizzati:** Permette di selezionare intervalli temporali, esclusione di periodi, filtri per tipologia di sforzo o condizioni.
+* **Analisi mirata:** Calcolo della curva CP/OmniPD solo sui dati filtrati, per valutazioni specifiche massimali.
+* **Visualizzazione interattiva:** Grafici aggiornati in tempo reale in base ai filtri applicati.
+
+### 4. 🫁 MetaboPower
+Analisi e confronto tra test al metabolimetro e potenziometro.
+* **Importazione dati:** Supporto per file da diversi metabolimetri (attualmente Cortex) e file FIT da powermeter.
+* **Confronto soglie ventilatorie:** Visualizzazione e confronto tra VT1/VT2 rilevati da dati metabolici e potenza reale.
+* **Grafici multiparametrici:** Overlay di parametri metabolici e potenza per analisi approfondita.
+* **Esportazione dati e report:** Funzionalità di export e generazione report in fase di sviluppo.
+
+### 5. 👥 bTeam (prototipo NOT WORKING)
+Scheletro grafico e core di una piattaforma per la reportistica e il tracking delle squadre.
+* **Gestione squadre e atleti:** CRUD completo, filtro per squadra, dettaglio atleta con dati opzionali e API key Intervals.icu.
+* **Tracking attività:** Inserimento manuale, visualizzazione attività, preparazione per import automatico da Intervals.icu.
+* **Storage locale sicuro:** Tutti i dati sensibili restano in locale, configurazione tramite file dedicato.
+* **In sviluppo:** Modulo in fase prototipale, pensato per la gestione avanzata di team e la generazione di report settimanali.
+
+### 6. 🚧 Work in Proggress
 
 ---
 
@@ -38,9 +58,13 @@ Modellazione avanzata della curva Potenza-Durata.
 Il progetto è costruito in **Python 3.10+** utilizzando:
 * **GUI:** `PySide6` (Qt)
 * **Data Science:** `NumPy`, `Pandas`, `SciPy`
-* **Visualizzazione:** `Matplotlib` e `Plotly`
-* **File Handling:** `fitparse`
-* **Export:** `xhtml2pdf`
+* **Visualizzazione:** `Matplotlib`, `Plotly`
+* **File Handling:** `fitparse`, parsing CSV/XLSX
+* **Database/Storage:** `SQLite` tramite `SQLAlchemy ORM` (bTeam), storage locale sicuro
+* **Export:** `xhtml2pdf` (report PDF)
+* **Networking/API:** `requests` (integrazione Intervals.icu, in sviluppo)
+* **Gestione configurazione:** file JSON custom (es. `bteam_config.json`, esclusi da Git)
+* **Altre dipendenze:** gestione avanzata di temi/stili, modularizzazione tramite package Python
 
 ---
 
