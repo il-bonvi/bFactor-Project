@@ -14,6 +14,7 @@ Estrae: intestazioni (riga 117), dati (da riga 119), metadati soggetto (celle sp
 import pandas as pd
 import openpyxl
 from typing import Dict, Optional
+from .data_extraction_metapow import find_column, normalize_decimals
 
 
 class CortexMetabolitParser:
@@ -62,7 +63,7 @@ class CortexMetabolitParser:
             
             # Crea DataFrame
             df = pd.DataFrame(data_rows, columns=columns)
-            df = self._normalize_decimals(df)
+            df = normalize_decimals(df)
             
             # ===== POSTPROCESSING METADATI =====
             self._postprocess_metadata(df)
@@ -151,27 +152,20 @@ class CortexMetabolitParser:
                     break
         
         # Identifica colonne tempo e potenza
-        time_col = self._find_column(df, keywords=["time", "tempo", "t ("])
+        time_col = find_column(df, keywords=["time", "tempo", "t ("])
         if time_col:
             self.metadata["time_column"] = time_col
         
-        power_col = self._find_column(df, keywords=["wr", "watt", "potenza", "power"])
+        power_col = find_column(df, keywords=["wr", "watt", "potenza", "power"])
         if power_col:
             self.metadata["power_column"] = power_col
         
         # Rileva inizio rampa: colonna W passa da 0 a >0
-        self._detect_ramp_start(df)
-    
-    def _detect_ramp_start(self, df: pd.DataFrame) -> None:
-        """Rileva l'inizio della rampa cercando in colonna W.
-        Inizio rampa = primo valore dove W passa da 0 (o piccolo) a >0.
-        Memorizza l'indice in self.metadata['ramp_start_index']
-        """
         try:
             col_w = None
             
             # Prova prima a trovare colonna W per nome
-            col_w = self._find_column(df, keywords=["W", "wr", "watt"])
+            col_w = find_column(df, keywords=["W", "wr", "watt"])
             
             # Se non trovata per nome, prova indice 22 (23esima colonna)
             if not col_w and len(df.columns) > 22:
@@ -208,32 +202,6 @@ class CortexMetabolitParser:
             print(f"Errore rilevamento inizio rampa: {e}")
             self.metadata["ramp_start_index"] = 0
     
-    @staticmethod
-    def _find_column(df: pd.DataFrame, keywords: list) -> Optional[str]:
-        """Trova una colonna per keyword"""
-        for col in df.columns:
-            name = str(col).lower()
-            if any(k.lower() in name for k in keywords):
-                return col
-        return None
-    
-    @staticmethod
-    def _normalize_decimals(df: pd.DataFrame) -> pd.DataFrame:
-        """Normalizza decimali: sostituisce ',' con '.' e converte colonne numeriche"""
-        for col in df.columns:
-            if df[col].dtype == 'object':  # Colonne stringa
-                try:
-                    # Rimpiazza virgola con punto
-                    df[col] = df[col].astype(str).str.replace(',', '.', regex=False)
-                    # Prova conversione numerica
-                    converted = pd.to_numeric(df[col], errors='coerce')
-                    # Se >50% numerico, converti
-                    if converted.notna().sum() / len(df) > 0.5:
-                        df[col] = converted
-                except:
-                    pass
-        
-        return df
     
     def get_data(self) -> Optional[pd.DataFrame]:
         """Ritorna il DataFrame caricato"""
@@ -242,18 +210,3 @@ class CortexMetabolitParser:
     def get_metadata(self) -> Dict:
         """Ritorna i metadati estratti"""
         return self.metadata
-    
-    def get_summary(self) -> Dict:
-        """Ritorna riassunto dei dati caricati"""
-        if self.data is None:
-            return {"error": "Nessun dato caricato"}
-        
-        return {
-            "parser": "Cortex XLSX",
-            "file_path": self.file_path,
-            "rows": len(self.data),
-            "columns": len(self.data.columns),
-            "column_names": list(self.data.columns),
-            "metadata": self.metadata,
-            "numeric_columns": self.data.select_dtypes(include=['number']).columns.tolist()
-        }

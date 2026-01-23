@@ -15,6 +15,53 @@ import numpy as np
 from typing import Tuple, Optional
 
 
+def find_column(df: pd.DataFrame, keywords: list) -> Optional[str]:
+    """Trova una colonna per keyword.
+    
+    Utility condivisa da cortex_metapow.py e genericsv_metapow.py
+    
+    Args:
+        df: DataFrame con colonne da cercare
+        keywords: Lista di keyword da cercare (case-insensitive)
+    
+    Returns:
+        Nome della colonna trovata o None
+    """
+    for col in df.columns:
+        name = str(col).lower()
+        if any(k.lower() in name for k in keywords):
+            return col
+    return None
+
+
+def normalize_decimals(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalizza decimali: sostituisce ',' con '.' e converte colonne numeriche.
+    
+    Utility condivisa da cortex_metapow.py e genericsv_metapow.py
+    Rileva automaticamente il formato di decimale (virgola o punto) e normalizza.
+    
+    Args:
+        df: DataFrame con eventuali decimali in formato virgola
+    
+    Returns:
+        DataFrame con decimali normalizzati a punto
+    """
+    for col in df.columns:
+        if df[col].dtype == 'object':  # Colonne stringa
+            try:
+                # Converte a stringa e rimpiazza virgola con punto
+                df[col] = df[col].astype(str).str.replace(',', '.', regex=False)
+                # Prova conversione numerica
+                converted = pd.to_numeric(df[col], errors='coerce')
+                # Se >50% numerico, converti la colonna
+                if converted.notna().sum() / len(df) > 0.5:
+                    df[col] = converted
+            except:
+                pass  # Rimane stringa se conversione fallisce
+    
+    return df
+
+
 def hmsms_to_seconds(series: pd.Series) -> np.ndarray:
     """Converte h:mm:ss,ms (con virgola come decimale) in secondi totali.
     
@@ -229,14 +276,15 @@ def find_vt_intersections(time_aligned: np.ndarray, power_data: np.ndarray,
 
 
 def calculate_rolling_averages(power_data: np.ndarray, 
-                               windows: list = [10, 20, 30]) -> dict:
+                               windows: list = [15, 30]) -> dict:
     """Calcola medie mobili della potenza su finestre temporali specifiche.
     
     Convenzione FIT: 1 campione = 1 secondo, quindi window size = secondi
+    Consolidata da vtcomparison_metapow.py per evitare duplicazione.
     
     Args:
         power_data: Array numpy con dati di potenza
-        windows: Lista di finestre in secondi (default: [10, 20, 30])
+        windows: Lista di finestre in secondi (default: [15, 30])
     
     Returns:
         Dictionary con chiavi f"{window}s" e valori array numpy delle medie mobili
@@ -252,4 +300,63 @@ def calculate_rolling_averages(power_data: np.ndarray,
             rolling_avg = pd.Series(power_data).rolling(window=window, center=False, min_periods=1).mean().values
             result[f"{window}s"] = rolling_avg
     
+    return result
+
+
+def calculate_rolling_centered15_fit(fit_data: np.ndarray) -> np.ndarray:
+    """Calcola l'array di medie mobili centrate su 15 secondi (7 prima + 7 dopo).
+    
+    Args:
+        fit_data: Array potenza FIT
+    
+    Returns:
+        Array medie mobili centrate 15s (stessa lunghezza di fit_data)
+    """
+    if fit_data is None or len(fit_data) == 0:
+        return fit_data
+    
+    result = np.zeros_like(fit_data, dtype=float)
+    for i in range(len(fit_data)):
+        start_idx = max(0, i - 7)
+        end_idx = min(len(fit_data), i + 8)
+        result[i] = np.mean(fit_data[start_idx:end_idx])
+    return result
+
+
+def calculate_rolling_centered30_fit(fit_data: np.ndarray) -> np.ndarray:
+    """Calcola l'array di medie mobili centrate su 30 secondi (15 prima + 15 dopo).
+    
+    Args:
+        fit_data: Array potenza FIT
+    
+    Returns:
+        Array medie mobili centrate 30s (stessa lunghezza di fit_data)
+    """
+    if fit_data is None or len(fit_data) == 0:
+        return fit_data
+    
+    result = np.zeros_like(fit_data, dtype=float)
+    for i in range(len(fit_data)):
+        start_idx = max(0, i - 15)
+        end_idx = min(len(fit_data), i + 16)
+        result[i] = np.mean(fit_data[start_idx:end_idx])
+    return result
+
+
+def calculate_rolling_avg5_fit(fit_data: np.ndarray) -> np.ndarray:
+    """Calcola l'array di medie mobili non centrate su 5 secondi.
+    
+    Args:
+        fit_data: Array potenza FIT
+    
+    Returns:
+        Array medie mobili 5s (stessa lunghezza di fit_data)
+    """
+    if fit_data is None or len(fit_data) == 0:
+        return fit_data
+    
+    result = np.zeros_like(fit_data, dtype=float)
+    for i in range(len(fit_data)):
+        start_idx = max(0, i - 5)
+        result[i] = np.mean(fit_data[start_idx:i + 1])
     return result

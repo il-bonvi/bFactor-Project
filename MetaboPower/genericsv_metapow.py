@@ -13,6 +13,7 @@ Supporta vari formati di decimali e separatori
 
 import pandas as pd
 from typing import Dict, Optional
+from .data_extraction_metapow import find_column, normalize_decimals
 
 
 class GenericCSVParser:
@@ -39,7 +40,7 @@ class GenericCSVParser:
                 }
             
             # ===== NORMALIZZA DECIMALI =====
-            df = self._normalize_decimals(df)
+            df = normalize_decimals(df)
             
             # ===== POSTPROCESSING METADATI =====
             self._postprocess_metadata(df)
@@ -96,11 +97,11 @@ class GenericCSVParser:
         - numeric_columns: lista delle colonne numeriche disponibili
         """
         # Identifica colonne tempo e potenza
-        time_col = self._find_column(df, keywords=["time", "tempo", "t (", "hh:mm:ss"])
+        time_col = find_column(df, keywords=["time", "tempo", "t (", "hh:mm:ss"])
         if time_col:
             self.metadata["time_column"] = time_col
         
-        power_col = self._find_column(df, keywords=["power", "watt", "potenza", "wr", "w"])
+        power_col = find_column(df, keywords=["power", "watt", "potenza", "wr", "w"])
         if power_col:
             self.metadata["power_column"] = power_col
         
@@ -108,35 +109,6 @@ class GenericCSVParser:
         numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
         self.metadata["numeric_columns"] = numeric_cols
     
-    @staticmethod
-    def _find_column(df: pd.DataFrame, keywords: list) -> Optional[str]:
-        """Trova una colonna per keyword"""
-        for col in df.columns:
-            name = str(col).lower()
-            if any(k.lower() in name for k in keywords):
-                return col
-        return None
-    
-    @staticmethod
-    def _normalize_decimals(df: pd.DataFrame) -> pd.DataFrame:
-        """Normalizza decimali: sostituisce ',' con '.' e converte colonne numeriche
-        
-        Rileva automaticamente il formato di decimale (virgola o punto) e normalizza.
-        """
-        for col in df.columns:
-            if df[col].dtype == 'object':  # Colonne stringa
-                try:
-                    # Converte a stringa e rimpiazza virgola con punto
-                    df[col] = df[col].astype(str).str.replace(',', '.', regex=False)
-                    # Prova conversione numerica
-                    converted = pd.to_numeric(df[col], errors='coerce')
-                    # Se >50% numerico, converti la colonna
-                    if converted.notna().sum() / len(df) > 0.5:
-                        df[col] = converted
-                except:
-                    pass  # Rimane stringa se conversione fallisce
-        
-        return df
     
     def get_data(self) -> Optional[pd.DataFrame]:
         """Ritorna il DataFrame caricato"""
@@ -145,18 +117,3 @@ class GenericCSVParser:
     def get_metadata(self) -> Dict:
         """Ritorna i metadati estratti"""
         return self.metadata
-    
-    def get_summary(self) -> Dict:
-        """Ritorna riassunto dei dati caricati"""
-        if self.data is None:
-            return {"error": "Nessun dato caricato"}
-        
-        return {
-            "parser": "Generic CSV",
-            "file_path": self.file_path,
-            "rows": len(self.data),
-            "columns": len(self.data.columns),
-            "column_names": list(self.data.columns),
-            "metadata": self.metadata,
-            "numeric_columns": self.data.select_dtypes(include=['number']).columns.tolist()
-        }

@@ -7,7 +7,7 @@
 
 """
 COMPAREVT_METAPOW.PY - Analisi e confronto soglie ventilatorie
-Funzioni per calcolare medie FIT e comparare VT1/VT2/MAP tra metabolimetro e power meter
+Funzioni per comparare VT1/VT2/MAP tra metabolimetro e power meter
 """
 
 import numpy as np
@@ -15,6 +15,10 @@ from typing import Optional
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox
 from PySide6.QtGui import QFont
 from PySide6.QtCore import Qt
+from .data_extraction_metapow import (
+    calculate_rolling_avg5_fit, calculate_rolling_centered15_fit,
+    calculate_rolling_centered30_fit
+)
 
 
 def find_nearest_idx(time_array: np.ndarray, target_time: float) -> int:

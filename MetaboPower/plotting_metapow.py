@@ -183,7 +183,12 @@ def create_overlaid_comparison_dialog(met_time_aligned: np.ndarray, met_data: np
                                       map_time: Optional[float] = None,
                                       fit_rolling_avgs: Optional[dict] = None,
                                       parent = None) -> QDialog:
-    """Crea il dialog di confronto sovrapposto metabolimetro vs FIT.
+    """Crea il dialog di confronto sovrapposto metabolimetro vs FIT con tab.
+    
+    Tab 1: Base (metabolimetro + FIT + medie 15s e 30s)
+    Tab 2: cent15s (metabolimetro + FIT 1s + media centrata 15s + VT)
+    Tab 3: cent30s (metabolimetro + FIT 1s + media centrata 30s + VT)
+    Tab 4: avg5s (metabolimetro + FIT 1s + media 5s + VT)
     
     Args:
         met_time_aligned: Tempo metabolimetro allineato
@@ -199,8 +204,13 @@ def create_overlaid_comparison_dialog(met_time_aligned: np.ndarray, met_data: np
         parent: Widget parent
     
     Returns:
-        QDialog configurato con grafico di confronto
+        QDialog configurato con tab di confronto
     """
+    from .data_extraction_metapow import (
+        calculate_rolling_avg5_fit, calculate_rolling_centered15_fit,
+        calculate_rolling_centered30_fit
+    )
+    
     dialog = QDialog(parent)
     dialog.setWindowTitle("Confronto Metabolimetro vs Power Meter")
     dialog.resize(1600, 900)
@@ -209,19 +219,145 @@ def create_overlaid_comparison_dialog(met_time_aligned: np.ndarray, met_data: np
         Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint
     )
     
-    layout = QVBoxLayout(dialog)
-    layout.setContentsMargins(0, 0, 0, 0)
+    main_layout = QVBoxLayout(dialog)
+    main_layout.setContentsMargins(0, 0, 0, 0)
     
-    fig, ax = create_overlaid_comparison_plot(
+    # Crea widget tab
+    tab_widget = QTabWidget()
+    
+    # ========== TAB 1: BASE (ORIGINALE) ==========
+    fig1, ax1 = create_overlaid_comparison_plot(
         met_time_aligned, met_data, fit_time_aligned, fit_data,
         met_end_idx, fit_end_idx,
         vt1_time, vt2_time, map_time, fit_rolling_avgs
     )
     
-    canvas = FigureCanvas(fig)
-    toolbar = NavigationToolbar(canvas, dialog)
-    layout.addWidget(toolbar)
-    layout.addWidget(canvas, stretch=1)
+    canvas1 = FigureCanvas(fig1)
+    toolbar1 = NavigationToolbar(canvas1, dialog)
+    
+    tab1_layout = QVBoxLayout()
+    tab1_layout.setContentsMargins(0, 0, 0, 0)
+    tab1_layout.addWidget(toolbar1)
+    tab1_layout.addWidget(canvas1, stretch=1)
+    
+    tab1_widget = QWidget()
+    tab1_widget.setLayout(tab1_layout)
+    tab_widget.addTab(tab1_widget, "📊 Base")
+    
+    # Helper per creare tab con una specifica media
+    def create_comparison_with_avg(met_time, met_data_vals, fit_time, fit_data_vals, 
+                                    fit_avg, fit_label, fit_color, vt1_t, vt2_t, map_t):
+        fig, ax = plt.subplots(figsize=(22, 11), dpi=100)
+        
+        # Plot metabolimetro
+        ax.plot(met_time, met_data_vals, 
+                label="Metabolimetro", 
+                color="#16a34a", linewidth=2)
+        
+        # Plot FIT 1s
+        ax.plot(fit_time, fit_data_vals, 
+                label="Power meter 1s", 
+                color="#2563eb", linestyle="-", linewidth=0.8, alpha=0.6)
+        
+        # Plot media FIT
+        ax.plot(fit_time, fit_avg,
+                label=fit_label,
+                color=fit_color,
+                linestyle="-",
+                linewidth=2,
+                alpha=0.9)
+        
+        # Linea fine rampa
+        ax.axvline(x=0, color="red", linestyle=":", linewidth=1.5, alpha=0.6, label="Fine rampa")
+        
+        # Linee VT
+        if vt1_t is not None:
+            ax.axvline(x=vt1_t, color="orange", linestyle="--", linewidth=1.5, alpha=0.7, label="VT1")
+        if vt2_t is not None:
+            ax.axvline(x=vt2_t, color="red", linestyle="--", linewidth=1.5, alpha=0.7, label="VT2")
+        if map_t is not None:
+            ax.axvline(x=map_t, color="purple", linestyle="--", linewidth=1.5, alpha=0.7, label="MAP")
+        
+        # Etichette
+        ax.set_xlabel("Tempo (minuti:secondi)", fontsize=12)
+        ax.set_ylabel("Potenza (W)", fontsize=12)
+        ax.set_title(fit_label, fontsize=13, fontweight="bold")
+        
+        # Formatter asse X
+        ax.xaxis.set_major_locator(MultipleLocator(60))
+        ax.xaxis.set_major_formatter(FuncFormatter(format_seconds))
+        
+        # Limiti assi
+        ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+        
+        ax.legend(fontsize=11, loc="upper left")
+        ax.grid(True, alpha=0.3)
+        fig.tight_layout()
+        
+        return fig
+    
+    # ========== TAB 2: CENT15S ==========
+    cent15_fit = calculate_rolling_centered15_fit(fit_data)
+    fig2 = create_comparison_with_avg(
+        met_time_aligned, met_data, fit_time_aligned, fit_data,
+        cent15_fit, "cent15s", "#06b6d4",
+        vt1_time, vt2_time, map_time
+    )
+    
+    canvas2 = FigureCanvas(fig2)
+    toolbar2 = NavigationToolbar(canvas2, dialog)
+    
+    tab2_layout = QVBoxLayout()
+    tab2_layout.setContentsMargins(0, 0, 0, 0)
+    tab2_layout.addWidget(toolbar2)
+    tab2_layout.addWidget(canvas2, stretch=1)
+    
+    tab2_widget = QWidget()
+    tab2_widget.setLayout(tab2_layout)
+    tab_widget.addTab(tab2_widget, "📈 cent15s")
+    
+    # ========== TAB 3: CENT30S ==========
+    cent30_fit = calculate_rolling_centered30_fit(fit_data)
+    fig3 = create_comparison_with_avg(
+        met_time_aligned, met_data, fit_time_aligned, fit_data,
+        cent30_fit, "cent30s", "#8b5cf6",
+        vt1_time, vt2_time, map_time
+    )
+    
+    canvas3 = FigureCanvas(fig3)
+    toolbar3 = NavigationToolbar(canvas3, dialog)
+    
+    tab3_layout = QVBoxLayout()
+    tab3_layout.setContentsMargins(0, 0, 0, 0)
+    tab3_layout.addWidget(toolbar3)
+    tab3_layout.addWidget(canvas3, stretch=1)
+    
+    tab3_widget = QWidget()
+    tab3_widget.setLayout(tab3_layout)
+    tab_widget.addTab(tab3_widget, "📈 cent30s")
+    
+    # ========== TAB 4: AVG5S ==========
+    avg5_fit = calculate_rolling_avg5_fit(fit_data)
+    fig4 = create_comparison_with_avg(
+        met_time_aligned, met_data, fit_time_aligned, fit_data,
+        avg5_fit, "avg5s", "#ec4899",
+        vt1_time, vt2_time, map_time
+    )
+    
+    canvas4 = FigureCanvas(fig4)
+    toolbar4 = NavigationToolbar(canvas4, dialog)
+    
+    tab4_layout = QVBoxLayout()
+    tab4_layout.setContentsMargins(0, 0, 0, 0)
+    tab4_layout.addWidget(toolbar4)
+    tab4_layout.addWidget(canvas4, stretch=1)
+    
+    tab4_widget = QWidget()
+    tab4_widget.setLayout(tab4_layout)
+    tab_widget.addTab(tab4_widget, "📈 avg5s")
+    
+    main_layout.addWidget(tab_widget)
     
     return dialog
 
