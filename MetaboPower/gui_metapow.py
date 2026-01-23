@@ -32,6 +32,7 @@ from .plotting_metapow import (
     create_fit_selection_plot, setup_fit_selection_click_handler,
     create_overlaid_comparison_plot, create_overlaid_comparison_dialog, create_vt_analysis_dialog
 )
+from .vtcomparison_metapow import show_vt_comparison_dialog
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
 
@@ -233,12 +234,18 @@ class MetaboPowerGUI(QMainWindow):
         self.btn_analyze.setEnabled(False)
         self.btn_analyze.clicked.connect(self.show_vt_analysis)
         
+        self.btn_vt_comparison = QPushButton("🔍 Confronto VT")
+        self.btn_vt_comparison.setMinimumHeight(45)
+        self.btn_vt_comparison.setEnabled(False)
+        self.btn_vt_comparison.clicked.connect(self.show_vt_comparison)
+        
         self.btn_export = QPushButton("💾 Report")
         self.btn_export.setMinimumHeight(45)
         self.btn_export.setEnabled(False)
         
         action_layout.addWidget(self.btn_compare)
         action_layout.addWidget(self.btn_analyze)
+        action_layout.addWidget(self.btn_vt_comparison)
         action_layout.addWidget(self.btn_export)
         
         analysis_layout.addLayout(action_layout)
@@ -474,6 +481,7 @@ class MetaboPowerGUI(QMainWindow):
         if self.csv_file and self.fit_file:
             self.btn_compare.setEnabled(True)
             self.btn_analyze.setEnabled(True)
+            self.btn_vt_comparison.setEnabled(True)
             self.btn_export.setEnabled(True)
 
     def show_overlaid_comparison(self):
@@ -605,3 +613,11 @@ class MetaboPowerGUI(QMainWindow):
         )
         
         dialog.exec()
+
+    def show_vt_comparison(self):
+        """Mostra tabella di confronto VT1, VT2, MAP tra metabolimetro e FIT"""
+        show_vt_comparison_dialog(
+            self.engine, self.vt1, self.vt2, self.map,
+            self.fit_end_idx, self.met_end_idx, self.met_ramp_start_idx,
+            parent=self
+        )
