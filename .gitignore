@@ -20,6 +20,7 @@ zBuilding/
 *.xlsx
 *.csv
 *.fit
+*.png
 
 # bTeam - File sensibili e dati locali
 bTeam/bteam_config.json
