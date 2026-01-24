@@ -22,6 +22,7 @@ from PEFFORT import EffortAnalyzer
 from omniPD_calculator import OmniPDAnalyzer
 from MetaboPower import MetaboPowerApp
 from bTeam import BTeamApp
+from RaceReport import RaceReportGUI
 from shared.styles import get_style, TEMI
 
 
@@ -38,6 +39,7 @@ class BfactorLauncher(QWidget):
         self.omniselector_window = None
         self.metabopower_window = None
         self.bteam_window = None
+        self.racereport_window = None
         
         self.setup_ui()
 
@@ -142,14 +144,14 @@ class BfactorLauncher(QWidget):
         self.btn_bteam.clicked.connect(self.open_bteam)
         grid_main.addWidget(self.btn_bteam, 2, 0)
 
-        # --- PULSANTE 6: WORK IN PROGRESS 2 ---
-        self.btn_wip2 = self.create_main_button(
-            "🚀 Coming Soon",
-            "Prossima applicazione\nComing soon",
-            "#64748b"
+        # --- PULSANTE 6: RACE REPORT ---
+        self.btn_racereport = self.create_main_button(
+            "📋 Race Report",
+            "Generatore report gare\nAnalisi e confronto performance",
+            "#0891b2"
         )
-        self.btn_wip2.clicked.connect(self.show_in_development)
-        grid_main.addWidget(self.btn_wip2, 2, 1)
+        self.btn_racereport.clicked.connect(self.open_racereport)
+        grid_main.addWidget(self.btn_racereport, 2, 1)
 
         main_layout.addLayout(grid_main)
         main_layout.addStretch()
@@ -203,6 +205,15 @@ class BfactorLauncher(QWidget):
         else:
             self.bteam_window = BTeamApp(theme=self.current_theme)
             self.bteam_window.showMaximized()
+
+    def open_racereport(self):
+        """Apre la finestra Race Report"""
+        if self.racereport_window is not None and self.racereport_window.isVisible():
+            self.racereport_window.raise_()
+            self.racereport_window.activateWindow()
+        else:
+            self.racereport_window = RaceReportGUI()
+            self.racereport_window.showMaximized()
 
     def apply_theme(self, tema_nome):
         """Applica il tema selezionato al launcher e lo salva"""

@@ -1,3 +1,9 @@
+## [0.6] - 2026-01-24
+### Nuovo modulo: RaceReport - Generatore PDF report gare
+- **RaceReport**: aggiunto nuovo modulo per la creazione di report PDF di gare
+- Analisi automatica di file CSV multipli, generazione tabella riassuntiva e grafici (distanza, potenza, lavoro)
+- Branding personalizzato con logo, esportazione PDF con opzione di apertura immediata
+
 ## [0.5.2] - 2026-01-24
 ### PEFFORT - Critical Fixes & Production Stability
 - **Fixed ImportError** in gui_PEFFORT.py: Changed relative import to absolute import for shared.styles

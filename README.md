@@ -49,7 +49,13 @@ Scheletro grafico e core di una piattaforma per la reportistica e il tracking de
 * **Storage locale sicuro:** Tutti i dati sensibili restano in locale, configurazione tramite file dedicato.
 * **In sviluppo:** Modulo in fase prototipale, pensato per la gestione avanzata di team e la generazione di report settimanali.
 
-### 6. 🚧 Work in Proggress
+### 6. 📋 RaceReport
+Generatore di report PDF per gare ciclistiche.
+* **Analisi automatica CSV multipli:** Unisce e analizza i dati di gara da più file.
+* **Report PDF con branding:** Tabella riassuntiva, grafici (distanza, potenza, lavoro) e logo personalizzato.
+* **Esportazione smart:** Salva e opzionalmente apre subito il PDF generato.
+
+### 7. 🚧 Work in Proggress
 
 ---
 
