@@ -10,9 +10,13 @@ CORE ENGINE - Logica pura per analisi efforts e sprints
 Contiene: parsing FIT, calcoli VAM, filtraggio, analisi sprint
 """
 
+from typing import List, Tuple, Dict, Any
+import logging
 import numpy as np
 import pandas as pd
 from fitparse import FitFile
+
+logger = logging.getLogger(__name__)
 
 # =====================
 # CONFIGURAZIONE DEFAULT
@@ -43,7 +47,7 @@ ZONE_DEFAULT = ("Anaerobico", "#6B3C3C73")
 # FUNZIONI UTILITY
 # =====================
 
-def format_time_hhmmss(seconds):
+def format_time_hhmmss(seconds: float) -> str:
     """Formatta secondi in HH:MM:SS"""
     h = int(seconds // 3600)
     m = int((seconds % 3600) // 60)
@@ -51,7 +55,7 @@ def format_time_hhmmss(seconds):
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-def format_time_mmss(seconds):
+def format_time_mmss(seconds: float) -> str:
     """Formatta secondi in MM:SS"""
     m = int(seconds // 60)
     s = int(seconds % 60)
@@ -62,46 +66,95 @@ def format_time_mmss(seconds):
 # FUNZIONI CORE - PARSING & DATA
 # =====================
 
-def parse_fit(file_path):
-    """Estrae dati FIT in DataFrame"""
-    fit = FitFile(file_path)
+def parse_fit(file_path: str) -> pd.DataFrame:
+    """
+    Estrae dati FIT in DataFrame con validazione.
+    
+    Args:
+        file_path: Percorso al file FIT
+        
+    Returns:
+        DataFrame con colonne: time, power, altitude, distance, heartrate, grade, cadence, time_sec, distance_km
+        
+    Raises:
+        FileNotFoundError: Se il file non esiste
+        ValueError: Se il file è corrotto o vuoto
+    """
+    import os
+    
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File FIT non trovato: {file_path}")
+    
+    try:
+        fit = FitFile(file_path)
+        logger.info(f"Parsing FIT file: {file_path}")
+    except Exception as e:
+        raise ValueError(f"Errore apertura file FIT: {str(e)}")
+    
     data = {
         "time": [], "power": [], "altitude": [], "distance": [], 
         "heartrate": [], "grade": [], "cadence": []
     }
     
-    for record in fit.get_messages("record"):
-        vals = {f.name: f.value for f in record}
-        data["time"].append(vals.get("timestamp"))
-        data["power"].append(vals.get("power") or 0)
-        data["altitude"].append(vals.get("enhanced_altitude") or 0)
-        data["distance"].append(vals.get("distance") or 0)
-        data["heartrate"].append(vals.get("heart_rate") or 0)
-        data["grade"].append(vals.get("grade") or 0)
-        data["cadence"].append(vals.get("cadence") or 0)
+    record_count = 0
+    try:
+        for record in fit.get_messages("record"):
+            vals = {f.name: f.value for f in record}
+            data["time"].append(vals.get("timestamp"))
+            data["power"].append(vals.get("power"))
+            data["altitude"].append(vals.get("enhanced_altitude"))
+            data["distance"].append(vals.get("distance"))
+            data["heartrate"].append(vals.get("heart_rate"))
+            data["grade"].append(vals.get("grade"))
+            data["cadence"].append(vals.get("cadence"))
+            record_count += 1
+    except Exception as e:
+        raise ValueError(f"Errore durante parsing record: {str(e)}")
+    
+    if record_count == 0:
+        raise ValueError("Nessun record trovato nel file FIT")
+    
+    logger.info(f"Importati {record_count} record")
     
     df = pd.DataFrame(data)
-    df["time"] = pd.to_datetime(df["time"])
+    
+    # Validazione timestamp
+    try:
+        df["time"] = pd.to_datetime(df["time"], errors='coerce')
+        if df["time"].isna().all():
+            raise ValueError("Nessun timestamp valido trovato")
+    except Exception as e:
+        raise ValueError(f"Errore parsing timestamp: {str(e)}")
+    
+    # Riempimento intelligente con fallback
+    df["power"] = pd.to_numeric(df["power"], errors='coerce').fillna(0).astype(int)
+    df["heartrate"] = pd.to_numeric(df["heartrate"], errors='coerce').fillna(0).astype(int)
+    df["cadence"] = pd.to_numeric(df["cadence"], errors='coerce').fillna(0).astype(int)
+    df["distance"] = pd.to_numeric(df["distance"], errors='coerce').ffill().fillna(0)
+    df["grade"] = pd.to_numeric(df["grade"], errors='coerce').fillna(0)
+    df["altitude"] = pd.to_numeric(df["altitude"], errors='coerce').ffill().fillna(0)
+    
     df["time_sec"] = (df["time"] - df["time"].iloc[0]).dt.total_seconds()
     df["distance_km"] = df["distance"] / 1000
-    df = df.fillna(0)
     
-    # Fix initial altitude
-    first_nonzero = df[df["altitude"] != 0]["altitude"].iloc[0] if len(df[df["altitude"] != 0]) > 0 else 0
-    for i in range(len(df)):
-        if df.loc[i, "altitude"] == 0:
-            df.loc[i, "altitude"] = first_nonzero
-        else:
-            break
-    
+    logger.info(f"DataFrame creato: {len(df)} righe")
     return df
 
 
-def get_zone_color(avg_power, ftp):
-    """Determina colore zona in base alla potenza"""
+def get_zone_color(avg_power: float, ftp: float) -> str:
+    """Determina colore zona in base alla potenza
+    
+    Args:
+        avg_power: Potenza media [W]
+        ftp: Functional Threshold Power [W]
+        
+    Returns:
+        Colore hex della zona
+    """
     if ftp <= 0:
-        return "grey"
-    perc = avg_power / ftp * 100
+        return "#cccccc"  # grigio neutro
+    
+    perc = (avg_power / ftp) * 100
     for th, color, _ in ZONE_COLORS:
         if perc < th:
             return color
@@ -112,32 +165,85 @@ def get_zone_color(avg_power, ftp):
 # FUNZIONI CORE - EFFORTS
 # =====================
 
-def trim_segment(power, start, end, trim_win, trim_pct):
-    """Limatura inizio/fine"""
-    while True:
+def trim_segment(power: np.ndarray, start: int, end: int, trim_win: int, trim_pct: float, 
+                 max_iterations: int = 100) -> Tuple[int, int]:
+    """Limatura inizio/fine di un segmento di potenza.
+    
+    Args:
+        power: Array di potenza
+        start: Indice inizio
+        end: Indice fine
+        trim_win: Finestra trim [samples]
+        trim_pct: Percentuale soglia [%]
+        max_iterations: Max iterazioni protezione infinite loop
+        
+    Returns:
+        Tuple (start_trimmed, end_trimmed)
+    """
+    iterations = 0
+    
+    while iterations < max_iterations:
+        iterations += 1
         changed = False
+        
         if end - start < trim_win * 2:
             break
+            
         seg = power[start:end]
         avg = seg.mean() if len(seg) > 0 else 0
+        
+        if avg <= 0:
+            break
 
-        head_avg = power[start:start+trim_win].mean()
-        if head_avg < avg * trim_pct / 100:
-            start += trim_win
-            changed = True
+        # Trim inizio
+        if start + trim_win < end:
+            head_avg = power[start:start+trim_win].mean()
+            if head_avg < avg * trim_pct / 100:
+                start += trim_win
+                changed = True
 
-        tail_avg = power[end-trim_win:end].mean()
-        if tail_avg < avg * trim_pct / 100:
-            end -= trim_win
-            changed = True
+        # Trim fine
+        if end - trim_win > start:
+            tail_avg = power[end-trim_win:end].mean()
+            if tail_avg < avg * trim_pct / 100:
+                end -= trim_win
+                changed = True
 
         if not changed:
             break
+    
+    if iterations >= max_iterations:
+        logger.warning(f"trim_segment raggiunto max_iterations ({max_iterations})")
+    
     return start, end
 
 
-def create_efforts(df, ftp, window_sec=60, merge_pct=15, min_ftp_pct=100, trim_win=10, trim_low=85):
-    """Crea finestre, merge, trim, filtro FTP"""
+def create_efforts(df: pd.DataFrame, ftp: float, window_sec: int = 60, merge_pct: float = 15, 
+                   min_ftp_pct: float = 100, trim_win: int = 10, trim_low: float = 85) -> List[Tuple[int, int, float]]:
+    """Crea finestre, merge, trim, filtro FTP.
+    
+    Args:
+        df: DataFrame con dati potenza
+        ftp: Functional Threshold Power [W]
+        window_sec: Dimensione finestra [s]
+        merge_pct: Threshold merge [%]
+        min_ftp_pct: Minima intensità [%FTP]
+        trim_win: Finestra trim [s]
+        trim_low: Soglia trim [%]
+        
+    Returns:
+        Lista di tuple (start_idx, end_idx, avg_power)
+        
+    Raises:
+        ValueError: Se parametri invalidi
+    """
+    if ftp <= 0:
+        raise ValueError(f"FTP non valida: {ftp}")
+    if window_sec <= 0:
+        raise ValueError(f"window_sec non valido: {window_sec}")
+    if min_ftp_pct < 0 or min_ftp_pct > 300:
+        raise ValueError(f"min_ftp_pct fuori range: {min_ftp_pct}")
+    
     power = df["power"].values
     n = len(power)
     windows = []
@@ -177,6 +283,7 @@ def create_efforts(df, ftp, window_sec=60, merge_pct=15, min_ftp_pct=100, trim_w
         
         idx = j
     
+    logger.info(f"Creati {len(merged)} efforts")
     return merged
 
 
@@ -288,15 +395,31 @@ def split_included(df, efforts):
 # FUNZIONI CORE - SPRINTS
 # =====================
 
-def detect_sprints(df, min_power, min_duration_sec, merge_gap_sec=1):
+def detect_sprints(df: pd.DataFrame, min_power: float, min_duration_sec: float, 
+                   merge_gap_sec: float = 1.0) -> List[Dict[str, Any]]:
     """
-    Rilevamento sprint dinamici (stile JS Surges):
-    Rileva blocchi di potenza sopra min_power e li unisce se vicini.
+    Rilevamento sprint dinamici - Rileva blocchi di potenza sopra min_power e li unisce se vicini.
+    
+    Args:
+        df: DataFrame con dati potenza
+        min_power: Potenza minima per sprint [W]
+        min_duration_sec: Durata minima sprint [s]
+        merge_gap_sec: Gap massimo per merge [s]
+        
+    Returns:
+        Lista di dizionari {start, end, avg} per ogni sprint
+        
+    Raises:
+        ValueError: Se parametri invalidi
     """
+    if min_power <= 0:
+        raise ValueError(f"min_power non valida: {min_power}")
+    if min_duration_sec <= 0:
+        raise ValueError(f"min_duration_sec non valida: {min_duration_sec}")
+    
     power = df["power"].values
     time_sec = df["time_sec"].values
     
-    # Trova i segmenti dove la potenza è costantemente sopra la soglia
     above_threshold = power >= min_power
     sprints = []
     i = 0
@@ -306,22 +429,24 @@ def detect_sprints(df, min_power, min_duration_sec, merge_gap_sec=1):
             start = i
             while i < len(above_threshold) and above_threshold[i]:
                 i += 1
-            end = i  # fine del blocco
+            end = i
             
-            durata = time_sec[end-1] - time_sec[start] + 1
-            if durata >= min_duration_sec:
-                sprints.append({
-                    'start': start, 
-                    'end': end, 
-                    'avg': np.mean(power[start:end])
-                })
+            if end > start:
+                durata = time_sec[end-1] - time_sec[start]
+                if durata >= min_duration_sec:
+                    sprints.append({
+                        'start': start, 
+                        'end': end, 
+                        'avg': np.mean(power[start:end])
+                    })
         else:
             i += 1
     
     if not sprints:
+        logger.info("Nessuno sprint rilevato")
         return []
 
-    # Unisce sprint che hanno un gap temporale piccolo
+    # Unisce sprint con gap temporale piccolo
     merged = []
     curr = sprints[0]
     
@@ -340,4 +465,5 @@ def detect_sprints(df, min_power, min_duration_sec, merge_gap_sec=1):
             curr = nxt
     
     merged.append(curr)
+    logger.info(f"Rilevati {len(merged)} sprint")
     return merged

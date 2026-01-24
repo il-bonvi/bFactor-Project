@@ -10,7 +10,10 @@ EXPORT MANAGER - Gestione esportazione PDF e generazione grafici
 Contiene: create_pdf_report, plot_unified_html, rendering plotly
 """
 
+from typing import List, Tuple, Dict, Any, Optional
+import logging
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 import io
@@ -20,198 +23,245 @@ from .engine_PEFFORT import (
     format_time_hhmmss, format_time_mmss, get_zone_color
 )
 
+logger = logging.getLogger(__name__)
 
-def create_pdf_report(df, efforts, sprints, img_base64_str, ftp, weight, output_path, params_str):
+
+def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
+                      sprints: List[Dict[str, Any]], img_base64_str: str, 
+                      ftp: float, weight: float, output_path: str, 
+                      params_str: str) -> bool:
     """
-    Genera un file PDF contenente il grafico e le tabelle (solo se presenti).
-    """
-    print("Inizio generazione PDF Report...")
+    Genera un file PDF contenente il grafico e le tabelle.
     
-    # Costruiamo il tag immagine HTML
-    if img_base64_str:
-        img_html = f'<img src="data:image/png;base64,{img_base64_str}" style="width:100%; border:1px solid #ddd;">'
-    else:
-        img_html = "<p><i>Immagine grafico non disponibile</i></p>"
-
-    # Dati per calcoli
-    power = df["power"].values
-    time_sec = df["time_sec"].values
-    alt = df["altitude"].values
-    dist = df["distance"].values
-    hr = df["heartrate"].values
-    grade = df["grade"].values
-    cadence = df["cadence"].values
-    dist_km = df["distance_km"].values
-
-    # --- HTML HEADER (Inizio del file) ---
-    html_content = f"""
-    <html>
-    <head>
-        <style>
-            @page {{ size: A4; margin: 1cm; }}
-            body {{ font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #333; }}
-            h1 {{ font-size: 18px; color: #222; border-bottom: 2px solid #444; padding-bottom: 5px; }}
-            h2 {{ font-size: 14px; margin-top: 20px; color: #444; background-color: #eee; padding: 5px; }}
-            .params {{ font-size: 8px; color: #666; margin-bottom: 15px; }}
-            table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; page-break-inside: auto; }}
-            th {{ background-color: #333; color: white; padding: 4px; text-align: left; font-size: 9px; }}
-            td {{ border-bottom: 1px solid #ddd; padding: 4px; font-size: 9px; }}
-            tr:nth-child(even) {{ background-color: #f9f9f9; }}
-            .right {{ text-align: right; }}
-        </style>
-    </head>
-    <body>
-        <h1>Effort Analysis Report</h1>
-        <div class="params">
-            {params_str} <br>
-            FTP: <b>{ftp:.0f} W</b> | Weight: <b>{weight:.1f} kg</b>
-        </div>
-        {img_html}
-    """
-
-    # --- SEZIONE EFFORTS (Compare solo se la lista efforts non è vuota) ---
-    if efforts:
-        html_content += """
-        <h2>Efforts Table</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th><th>Start</th><th>Dur</th>
-                    <th class="right">Power</th><th class="right">W/kg</th><th class="right">%FTP</th>
-                    <th class="right">Best 5s</th><th class="right">HR</th>
-                    <th class="right">VAM</th><th class="right">Grade</th><th class="right">kJ</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
+    Args:
+        df: DataFrame con dati attività
+        efforts: Lista efforts (start, end, avg_power)
+        sprints: Lista sprints {start, end, avg}
+        img_base64_str: Immagine grafico in base64
+        ftp: Functional Threshold Power
+        weight: Peso atleta
+        output_path: Percorso output PDF
+        params_str: Stringa parametri configurazione
         
-        ranked_efforts = sorted(enumerate(efforts), key=lambda x: x[1][2], reverse=True)
-        effort_to_rank = {orig_idx: rank + 1 for rank, (orig_idx, _) in enumerate(ranked_efforts)}
-
-        for i, (s, e, avg) in enumerate(efforts):
-            seg_power = power[s:e]
-            seg_alt = alt[s:e]
-            seg_dist = dist[s:e]
-            seg_time = time_sec[s:e]
-            seg_hr = hr[s:e]
-            seg_grade = grade[s:e]
-            seg_cadence = cadence[s:e]
-            seg_dist_km = dist_km[s:e]
-
-            duration = int(seg_time[-1] - seg_time[0] + 1)
-            elevation_gain = seg_alt[-1] - seg_alt[0]
-            dist_tot = seg_dist[-1] - seg_dist[0]
-            avg_grade = (elevation_gain / dist_tot * 100) if dist_tot > 0 else 0
-            vam = elevation_gain / (duration / 3600) if duration > 0 else 0
-
-            w_kg = avg / weight if weight > 0 else 0
-            perc_ftp = (avg / ftp * 100) if ftp > 0 else 0
-
-            valid_hr = seg_hr[seg_hr > 0]
-            hr_str = f"{int(valid_hr.mean())}" if len(valid_hr) > 0 else "-"
-
-            best_5s_watt = 0
-            if len(seg_power) >= 5:
-                best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
-                best_5s_watt = int(best_5s)
-
-            # Calcolo kJ
-            kj_seg = 0
-            for k in range(1, len(seg_time)):
-                dt = seg_time[k] - seg_time[k-1]
-                if 0 < dt < 30:
-                    kj_seg += seg_power[k] * dt
-
-            html_content += f"""
-                <tr>
-                    <td>#{effort_to_rank[i]}</td>
-                    <td>{format_time_hhmmss(seg_time[0])}</td>
-                    <td>{duration}s</td>
-                    <td class="right"><b>{avg:.0f} W</b></td>
-                    <td class="right">{w_kg:.2f}</td>
-                    <td class="right">{perc_ftp:.0f}%</td>
-                    <td class="right">{best_5s_watt:.0f} W</td>
-                    <td class="right">{hr_str}</td>
-                    <td class="right">{vam:.0f}</td>
-                    <td class="right">{avg_grade:.1f}%</td>
-                    <td class="right">{kj_seg:.0f}</td>
-                </tr>
-            """
-        html_content += "</tbody></table>"
-
-    # --- SEZIONE SPRINTS (Compare solo se la lista sprints non è vuota) ---
-    if sprints:
-        html_content += """
-        <h2>Sprints Table</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th><th>Start</th><th>Dur</th>
-                    <th class="right">Avg Power</th><th class="right">Max Power</th>
-                    <th class="right">W/kg</th><th class="right">HR Max</th>
-                    <th class="right">Cadence Avg/Max</th><th class="right">Speed Max</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-        ranked_sprints = sorted(enumerate(sprints), key=lambda x: x[1]['avg'], reverse=True)
-        sprint_to_rank = {orig_idx: rank + 1 for rank, (orig_idx, _) in enumerate(ranked_sprints)}
-
-        for i, sprint in enumerate(sprints):
-            start, end = sprint['start'], sprint['end']
-            seg_power, seg_time = power[start:end], time_sec[start:end]
-            seg_hr, seg_cadence = hr[start:end], cadence[start:end]
-            seg_dist_km = dist_km[start:end]
-
-            w_kg = sprint['avg'] / weight if weight > 0 else 0
-            max_hr = seg_hr.max() if seg_hr[seg_hr > 0].any() else 0
-            v_cad = seg_cadence[seg_cadence > 0]
-            cad_str = f"{v_cad.mean():.0f}/{v_cad.max():.0f}" if len(v_cad) > 0 else "-"
-            
-            max_speed = 0
-            if len(seg_dist_km) > 1:
-                diffs = [(seg_dist_km[k+1]-seg_dist_km[k])/(time_sec[start+k+1]-time_sec[start+k])*3600 for k in range(len(seg_dist_km)-1)]
-                max_speed = max(diffs) if diffs else 0
-
-            html_content += f"""
-                <tr>
-                    <td>S#{sprint_to_rank[i]}</td>
-                    <td>{format_time_hhmmss(seg_time[0])}</td>
-                    <td>{int(end-start)}s</td>
-                    <td class="right"><b>{sprint['avg']:.0f} W</b></td>
-                    <td class="right">{seg_power.max():.0f} W</td>
-                    <td class="right">{w_kg:.2f}</td>
-                    <td class="right">{max_hr:.0f}</td>
-                    <td class="right">{cad_str}</td>
-                    <td class="right">{max_speed:.1f}</td>
-                </tr>
-            """
-        html_content += "</tbody></table>"
-
-    # --- FOOTER ---
-    html_content += """
-        <div style="text-align:center; margin-top: 30px; font-size: 8px; color: #888;">
-            Generated by bFactor Engine
-        </div>
-    </body>
-    </html>
+    Returns:
+        True se successo, False se errore
     """
-
-    # Scrittura finale del file PDF
     try:
+        logger.info(f"Inizio generazione PDF Report: {output_path}")
+        
+        # Costruiamo il tag immagine HTML
+        if img_base64_str:
+            img_html = f'<img src="data:image/png;base64,{img_base64_str}" style="width:100%; border:1px solid #ddd;">'
+        else:
+            img_html = "<p><i>Immagine grafico non disponibile</i></p>"
+
+        # Dati per calcoli
+        power = df["power"].values
+        time_sec = df["time_sec"].values
+        alt = df["altitude"].values
+        dist = df["distance"].values
+        hr = df["heartrate"].values
+        grade = df["grade"].values
+        cadence = df["cadence"].values
+        dist_km = df["distance_km"].values
+
+        # --- HTML HEADER ---
+        html_content = f"""
+        <html>
+        <head>
+            <style>
+                @page {{ size: A4; margin: 1cm; }}
+                body {{ font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #333; }}
+                h1 {{ font-size: 18px; color: #222; border-bottom: 2px solid #444; padding-bottom: 5px; }}
+                h2 {{ font-size: 14px; margin-top: 20px; color: #444; background-color: #eee; padding: 5px; }}
+                .params {{ font-size: 8px; color: #666; margin-bottom: 15px; }}
+                table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; page-break-inside: auto; }}
+                th {{ background-color: #333; color: white; padding: 4px; text-align: left; font-size: 9px; }}
+                td {{ border-bottom: 1px solid #ddd; padding: 4px; font-size: 9px; }}
+                tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                .right {{ text-align: right; }}
+            </style>
+        </head>
+        <body>
+            <h1>Effort Analysis Report</h1>
+            <div class="params">
+                {params_str} <br>
+                FTP: <b>{ftp:.0f} W</b> | Weight: <b>{weight:.1f} kg</b>
+            </div>
+            {img_html}
+        """
+
+        # --- SEZIONE EFFORTS ---
+        if efforts:
+            html_content += """
+            <h2>Efforts Table</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Start</th><th>Dur</th>
+                        <th class="right">Power</th><th class="right">W/kg</th><th class="right">%FTP</th>
+                        <th class="right">Best 5s</th><th class="right">HR</th>
+                        <th class="right">VAM</th><th class="right">Grade</th><th class="right">kJ</th>
+                    </tr>
+                </thead>
+                <tbody>
+            """
+            
+            ranked_efforts = sorted(enumerate(efforts), key=lambda x: x[1][2], reverse=True)
+            effort_to_rank = {orig_idx: rank + 1 for rank, (orig_idx, _) in enumerate(ranked_efforts)}
+
+            for i, (s, e, avg) in enumerate(efforts):
+                seg_power = power[s:e]
+                seg_alt = alt[s:e]
+                seg_dist = dist[s:e]
+                seg_time = time_sec[s:e]
+                seg_hr = hr[s:e]
+                seg_grade = grade[s:e]
+                seg_cadence = cadence[s:e]
+                seg_dist_km = dist_km[s:e]
+
+                duration = int(seg_time[-1] - seg_time[0] + 1)
+                elevation_gain = seg_alt[-1] - seg_alt[0]
+                dist_tot = seg_dist[-1] - seg_dist[0]
+                avg_grade = (elevation_gain / dist_tot * 100) if dist_tot > 0 else 0
+                vam = elevation_gain / (duration / 3600) if duration > 0 else 0
+
+                w_kg = avg / weight if weight > 0 else 0
+                perc_ftp = (avg / ftp * 100) if ftp > 0 else 0
+
+                valid_hr = seg_hr[seg_hr > 0]
+                hr_str = f"{int(valid_hr.mean())}" if len(valid_hr) > 0 else "-"
+
+                best_5s_watt = 0
+                if len(seg_power) >= 5:
+                    best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
+                    best_5s_watt = int(best_5s)
+
+                # Calcolo kJ
+                kj_seg = 0
+                for k in range(1, len(seg_time)):
+                    dt = seg_time[k] - seg_time[k-1]
+                    if 0 < dt < 30:
+                        kj_seg += seg_power[k] * dt
+
+                html_content += f"""
+                    <tr>
+                        <td>#{effort_to_rank[i]}</td>
+                        <td>{format_time_hhmmss(seg_time[0])}</td>
+                        <td>{duration}s</td>
+                        <td class="right"><b>{avg:.0f} W</b></td>
+                        <td class="right">{w_kg:.2f}</td>
+                        <td class="right">{perc_ftp:.0f}%</td>
+                        <td class="right">{best_5s_watt:.0f} W</td>
+                        <td class="right">{hr_str}</td>
+                        <td class="right">{vam:.0f}</td>
+                        <td class="right">{avg_grade:.1f}%</td>
+                        <td class="right">{kj_seg:.0f}</td>
+                    </tr>
+                """
+            html_content += "</tbody></table>"
+
+        # --- SEZIONE SPRINTS ---
+        if sprints:
+            html_content += """
+            <h2>Sprints Table</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Start</th><th>Dur</th>
+                        <th class="right">Avg Power</th><th class="right">Max Power</th>
+                        <th class="right">W/kg</th><th class="right">HR Max</th>
+                        <th class="right">Cadence Avg/Max</th><th class="right">Speed Max</th>
+                    </tr>
+                </thead>
+                <tbody>
+            """
+            ranked_sprints = sorted(enumerate(sprints), key=lambda x: x[1]['avg'], reverse=True)
+            sprint_to_rank = {orig_idx: rank + 1 for rank, (orig_idx, _) in enumerate(ranked_sprints)}
+
+            for i, sprint in enumerate(sprints):
+                start, end = sprint['start'], sprint['end']
+                seg_power, seg_time = power[start:end], time_sec[start:end]
+                seg_hr, seg_cadence = hr[start:end], cadence[start:end]
+                seg_dist_km = dist_km[start:end]
+
+                w_kg = sprint['avg'] / weight if weight > 0 else 0
+                max_hr = seg_hr.max() if seg_hr[seg_hr > 0].any() else 0
+                v_cad = seg_cadence[seg_cadence > 0]
+                cad_str = f"{v_cad.mean():.0f}/{v_cad.max():.0f}" if len(v_cad) > 0 else "-"
+                
+                max_speed = 0
+                if len(seg_dist_km) > 1:
+                    diffs = [(seg_dist_km[k+1]-seg_dist_km[k])/(time_sec[start+k+1]-time_sec[start+k])*3600 for k in range(len(seg_dist_km)-1)]
+                    max_speed = max(diffs) if diffs else 0
+
+                html_content += f"""
+                    <tr>
+                        <td>S#{sprint_to_rank[i]}</td>
+                        <td>{format_time_hhmmss(seg_time[0])}</td>
+                        <td>{int(end-start)}s</td>
+                        <td class="right"><b>{sprint['avg']:.0f} W</b></td>
+                        <td class="right">{seg_power.max():.0f} W</td>
+                        <td class="right">{w_kg:.2f}</td>
+                        <td class="right">{max_hr:.0f}</td>
+                        <td class="right">{cad_str}</td>
+                        <td class="right">{max_speed:.1f}</td>
+                    </tr>
+                """
+            html_content += "</tbody></table>"
+
+        # --- FOOTER ---
+        html_content += """
+            <div style="text-align:center; margin-top: 30px; font-size: 8px; color: #888;">
+                Generated by bFactor PEFFORT Engine
+            </div>
+        </body>
+        </html>
+        """
+
+        # Scrittura PDF
         with open(output_path, "wb") as result_file:
             pisa.CreatePDF(io.BytesIO(html_content.encode('utf-8')), dest=result_file)
+        
+        logger.info(f"PDF generato con successo: {output_path}")
         return True
+        
+    except IOError as e:
+        logger.error(f"Errore I/O durante scrittura PDF: {e}", exc_info=True)
+        return False
     except Exception as e:
-        print(f"Errore scrittura PDF: {e}")
+        logger.error(f"Errore generazione PDF: {e}", exc_info=True)
         return False
 
 
-def plot_unified_html(df, efforts, sprints, ftp, weight, 
-                      window_sec, merge_pct, min_ftp_pct, trim_win, trim_low, extend_win, extend_low,
-                      sprint_window_sec, min_sprint_power):
-    """Genera grafico Plotly HTML"""
-    print("Inizializzazione figura...")
+def plot_unified_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
+                      sprints: List[Dict[str, Any]], ftp: float, weight: float,
+                      window_sec: int, merge_pct: float, min_ftp_pct: float, 
+                      trim_win: int, trim_low: float, extend_win: int, extend_low: float,
+                      sprint_window_sec: int, min_sprint_power: float) -> str:
+    """
+    Genera grafico Plotly HTML unificato con efforts e sprints.
+    
+    Args:
+        df: DataFrame con dati attività
+        efforts: Lista efforts
+        sprints: Lista sprints
+        ftp: Functional Threshold Power
+        weight: Peso atleta
+        window_sec: Finestra effort
+        merge_pct: Merge threshold
+        min_ftp_pct: Min FTP %
+        trim_win: Trim window
+        trim_low: Trim low %
+        extend_win: Extend window
+        extend_low: Extend low %
+        sprint_window_sec: Sprint window
+        min_sprint_power: Sprint min power
+        
+    Returns:
+        HTML string con grafico Plotly
+    """
+    logger.info("Inizializzazione figura Plotly...")
     
     power = df["power"].values
     time_sec = df["time_sec"].values
@@ -487,6 +537,7 @@ def plot_unified_html(df, efforts, sprints, ftp, weight,
     for ann in annotations:
         fig.add_annotation(ann)
     
+    logger.info(f"Grafico generato con {len(efforts)} efforts e {len(sprints)} sprints")
     html_str = pio.to_html(fig, full_html=True)
     
     # CSS per eliminare bordi bianchi e scrollbar laterale
@@ -507,7 +558,7 @@ def plot_unified_html(df, efforts, sprints, ftp, weight,
     """
     html_str = html_str.replace('<head>', '<head>' + style_fix)
 
-    # JS originale per nascondere le etichette
+    # JS per gestione legend annotations
     custom_js = """
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -541,4 +592,5 @@ def plot_unified_html(df, efforts, sprints, ftp, weight,
     </script>
     """
     html_str = html_str.replace('</body>', custom_js + '</body>')
+    logger.info("HTML generato con successo")
     return html_str

@@ -11,13 +11,37 @@ Nota: Questo file è opzionale. Per il launcher usa root/main.py
 """
 
 import sys
+import logging
 from PySide6.QtWidgets import QApplication
 from .gui_PEFFORT import EffortAnalyzer
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('peffort.log')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 def launch_peffort():
     """Funzione per lanciare PEFFORT come applicazione standalone"""
-    app = QApplication(sys.argv)
+    logger.info("Avvio PEFFORT...")
+    
+    # Gestisci QApplication istanza unica
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+        logger.info("Nuova QApplication creata")
+    else:
+        logger.info("QApplication già presente")
+    
     window = EffortAnalyzer()
     window.showMaximized()
+    logger.info("EffortAnalyzer window shown")
+    
     sys.exit(app.exec())
+

@@ -1,3 +1,9 @@
+## [0.5.2] - 2026-01-24
+### PEFFORT - Critical Fixes & Production Stability
+- **Fixed ImportError** in gui_PEFFORT.py: Changed relative import to absolute import for shared.styles
+- **Removed pandas FutureWarnings**: Replaced deprecated `fillna(method='ffill')` with modern `.ffill()` method
+- **All critical issues resolved**: Module now fully production-ready with robust error handling
+
 ## [0.5.1] - 2026-01-24
 ### Omniselector - Stability & Filtering Architecture Fix
 - **Filtro percentile residuals - Architettura stabile**:
