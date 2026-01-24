@@ -130,8 +130,13 @@ def plot_residuals(ax, x_data, residuals, RMSE, MAE, theme="Forest Green"):
     # Linea zero
     ax.axhline(0, color=text_color, linestyle='--', linewidth=1, alpha=0.5)
     
+    # Ordina i dati per tempo per evitare linee strane sulla scala log
+    sort_idx = np.argsort(x_data)
+    x_sorted = x_data[sort_idx]
+    residuals_sorted = residuals[sort_idx]
+    
     # Residui
-    ax.plot(x_data, residuals, linestyle='-', 
+    ax.plot(x_sorted, residuals_sorted, linestyle='-', 
              color='red', linewidth=1, marker='x', 
              markerfacecolor='black', markeredgecolor='black', 
              markersize=5)

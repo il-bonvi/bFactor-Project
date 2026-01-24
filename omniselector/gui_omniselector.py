@@ -36,10 +36,15 @@ from .ui_builder_omniselector import (
 try:
     from shared.styles import get_style, TEMI
 except ImportError:
-    from shared.styles import get_style
-    TEMI = {"Forest Green": {}}
-    def get_style(x):
-        return "background-color: #061f17; color: white;"
+    # Fallback se shared.styles non è disponibile
+    try:
+        # Tenta import relativo come fallback (usato quando eseguito come script diretto)
+        from .styles import get_style, TEMI  # type: ignore
+    except (ImportError, ModuleNotFoundError):
+        # Ultimo fallback: definisci localmente
+        TEMI = {"Forest Green": {}}
+        def get_style(x):
+            return "background-color: #061f17; color: white;"
 
 
 class OmniSelectorAnalyzer(QWidget):
@@ -64,6 +69,11 @@ class OmniSelectorAnalyzer(QWidget):
         self.values_per_window = 1
         self.sprint_value = 10.0  # default sprint value in seconds
         self.selected_mask = None
+        
+        # MODELLO BASE: calcolato su TUTTI i raw data (non filtrato)
+        # Usato per il filtro stabile
+        self.base_params = None  # parametri modello su raw data completi
+        self.base_residuals = None  # residui rispetto al modello base
         
         # Variabili per hover
         self.hover_ann_points = None
@@ -130,23 +140,6 @@ class OmniSelectorAnalyzer(QWidget):
         self.update_ompd_plot()
         self.update_residuals_plot()
         self.update_weff_plot()
-        self.setStyleSheet(get_style(tema_nome))
-        
-        # Aggiorna i colori di background delle figure matplotlib
-        colors = TEMI.get(tema_nome, TEMI["Forest Green"])
-        bg_color = colors.get("bg", "#061f17")
-        
-        self.figure1.set_facecolor(bg_color)
-        self.figure2.set_facecolor(bg_color)
-        self.figure3.set_facecolor(bg_color)
-        
-        # Aggiorna gli stili specifici dei widget
-        apply_widget_styles(self)
-        
-        # Ridisegna i grafici con il nuovo tema
-        self.update_ompd_plot()
-        self.update_residuals_plot()
-        self.update_weff_plot()
 
     def _get_time_windows_from_ui(self):
         """Recupera le finestre temporali dai widget inline"""
@@ -177,18 +170,26 @@ class OmniSelectorAnalyzer(QWidget):
         return windows
 
     def _update_filter_params(self):
-        """Aggiorna i parametri di filtraggio dall'UI"""
+        """Aggiorna i parametri di filtraggio dall'UI con validazione"""
         try:
-            self.percentile_min = float(self.percentile_input.text().strip() or 0)
-        except ValueError:
+            val = float(self.percentile_input.text().strip() or 0)
+            # Valida che percentile sia tra 0-100
+            self.percentile_min = max(0.0, min(100.0, val))
+        except (ValueError, TypeError):
             self.percentile_min = 0.0
+        
         try:
-            self.values_per_window = int(self.count_input.text().strip() or 1)
-        except ValueError:
+            val = int(self.count_input.text().strip() or 1)
+            # Valida che count sia > 0
+            self.values_per_window = max(1, val)
+        except (ValueError, TypeError):
             self.values_per_window = 1
+        
         try:
-            self.sprint_value = float(self.sprint_input.text().strip() or 10)
-        except ValueError:
+            val = float(self.sprint_input.text().strip() or 10)
+            # Valida che sprint sia >= 0
+            self.sprint_value = max(0.0, val)
+        except (ValueError, TypeError):
             self.sprint_value = 10.0
 
     def _apply_filters(self, x_data, y_data):
@@ -201,8 +202,16 @@ class OmniSelectorAnalyzer(QWidget):
             self.percentile_min, 
             self.values_per_window, 
             self.sprint_value,
-            self.params
+            self.base_residuals  # Passa i residui STABILI del modello base
         )
+    
+    def _on_filter_params_changed(self):
+        """Callback quando cambiano i parametri di filtro (percentile, count, sprint)
+        NOTA: Questo metodo NON ricalcola il filtro automaticamente.
+        L'utente deve cliccare "Elabora" per applicare i nuovi filtri e fare il refresh."""
+        # Placeholder: potrebbe in futuro mostrare preview dei dati filtrati
+        # Ma per ora, lascia che l'utente esplicitamente clicchi "Elabora" per il refresh
+        pass
 
     def _draw_time_windows(self, ax):
         """Disegna le finestre temporali sul grafico"""
@@ -257,6 +266,9 @@ class OmniSelectorAnalyzer(QWidget):
             self.selected_mask = None
             self.x_data = None
             self.y_data = None
+            # Reset modello base per nuovo file
+            self.base_params = None
+            self.base_residuals = None
             self.update_ompd_plot()
             
         except Exception as e:
@@ -299,26 +311,108 @@ class OmniSelectorAnalyzer(QWidget):
             QMessageBox.critical(self, "Errore Calcolo", str(e))
 
     def run_calculation(self):
-        # Pulisci vecchie connessioni di hover
-        if self.cid_ompd is not None:
-            self.canvas1.mpl_disconnect(self.cid_ompd)
-            self.cid_ompd = None
-        if self.cid_residuals is not None:
-            self.canvas2.mpl_disconnect(self.cid_residuals)
-            self.cid_residuals = None
+        """Esegue il calcolo del modello con pulizia e gestione errori robusta"""
+        # Pulisci vecchie connessioni di hover e annotazioni
+        self._cleanup_event_handlers()
         
         try:
             # Usa i dati raw già caricati dal CSV
             if self.raw_x_data is None or self.raw_y_data is None:
                 raise ValueError("Carica prima un file CSV")
             
-            self.x_data, self.y_data, self.selected_mask = self._apply_filters(self.raw_x_data, self.raw_y_data)
+            if len(self.raw_x_data) < 4:
+                raise ValueError(f"Dati insufficienti: {len(self.raw_x_data)} punti (minimo 4)")
             
-            # Calcola il modello
+            # Se non abbiamo ancora calcolato il modello BASE (su tutti i raw data),
+            # fallo ora. Questo modello rimarrà stabile per tutte le elaborazioni successive.
+            if self.base_params is None or self.base_residuals is None:
+                self._calculate_base_model()
+            
+            # Applica i filtri usando i residui stabile del modello base
+            self.x_data, self.y_data, self.selected_mask = self._apply_filters(
+                self.raw_x_data, self.raw_y_data
+            )
+            
+            # Calcola il modello sui dati filtrati
             self._calculate_model()
 
+        except ValueError as e:
+            QMessageBox.critical(self, "Errore Validazione", str(e))
         except Exception as e:
-            QMessageBox.critical(self, "Errore Calcolo", str(e))
+            QMessageBox.critical(self, "Errore Calcolo", f"Errore inaspettato: {str(e)}")
+    
+    def _calculate_base_model(self):
+        """Calcola il modello BASE su TUTTI i raw data (non filtrato).
+        Questo modello viene calcolato una sola volta e i suoi residui vengono usati
+        per il filtro stabile nelle elaborazioni successive."""
+        try:
+            if self.raw_x_data is None or len(self.raw_x_data) < 4:
+                raise ValueError("Dati raw insufficienti per modello base")
+            
+            result = calculate_omnipd_model(self.raw_x_data, self.raw_y_data)
+            
+            self.base_params = result['params']
+            self.base_residuals = result['residuals']
+            
+        except Exception as e:
+            raise ValueError(f"Errore durante il calcolo del modello base: {str(e)}")
+    
+    def _cleanup_event_handlers(self):
+        """Pulisci connessioni di hover e annotazioni per evitare memory leak"""
+        # Disconnect event handlers
+        if self.cid_ompd is not None:
+            try:
+                self.canvas1.mpl_disconnect(self.cid_ompd)
+            except Exception:
+                pass
+            self.cid_ompd = None
+        
+        if self.cid_residuals is not None:
+            try:
+                self.canvas2.mpl_disconnect(self.cid_residuals)
+            except Exception:
+                pass
+            self.cid_residuals = None
+        
+        if self.cid_weff is not None:
+            try:
+                self.canvas3.mpl_disconnect(self.cid_weff)
+            except Exception:
+                pass
+            self.cid_weff = None
+        
+        # Rimuovi annotazioni
+        self._remove_all_annotations()
+    
+    def _remove_all_annotations(self):
+        """Rimuovi tutte le annotazioni matplotlib in modo sicuro"""
+        if self.hover_ann_points is not None:
+            try:
+                self.hover_ann_points.remove()
+            except Exception:
+                pass
+            self.hover_ann_points = None
+        
+        if self.ann_curve is not None:
+            try:
+                self.ann_curve.remove()
+            except Exception:
+                pass
+            self.ann_curve = None
+        
+        if self.hover_ann_residuals is not None:
+            try:
+                self.hover_ann_residuals.remove()
+            except Exception:
+                pass
+            self.hover_ann_residuals = None
+        
+        if self.cursor_point is not None:
+            try:
+                self.cursor_point.remove()
+            except Exception:
+                pass
+            self.cursor_point = None
 
     def update_ompd_plot(self):
         """Aggiorna il grafico OmPD principale"""

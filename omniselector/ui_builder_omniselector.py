@@ -118,11 +118,12 @@ def _create_filters_section(analyzer):
     conv_row.addStretch()
     layout.addLayout(conv_row)
     
-    # Input finestre temporali (area scrollabile)
+    # Input finestre temporali (area scrollabile con QScrollArea)
     analyzer.time_windows_inputs = []
     analyzer.time_windows_container = QWidget()
     analyzer.time_windows_layout = QVBoxLayout(analyzer.time_windows_container)
     analyzer.time_windows_layout.setSpacing(4)
+    analyzer.time_windows_layout.setContentsMargins(0, 0, 0, 0)
     
     # Aggiungi 6 finestre di default con valori comuni
     default_values = ["120", "240", "480", "900", "1800", "2700"]
@@ -134,6 +135,16 @@ def _create_filters_section(analyzer):
         window_row.addWidget(window_input)
         analyzer.time_windows_layout.addLayout(window_row)
         analyzer.time_windows_inputs.append(window_input)
+    
+    # Aggiungi stretch per evitare che le finestre siano troppo compresse
+    analyzer.time_windows_layout.addStretch()
+    
+    # Wrap in QScrollArea per scrollabilità
+    scroll_area = QScrollArea()
+    scroll_area.setWidget(analyzer.time_windows_container)
+    scroll_area.setWidgetResizable(True)
+    scroll_area.setMaximumHeight(150)
+    scroll_area.setStyleSheet("QScrollArea { border: 1px solid #334155; }")
     
     # Bottoni per gestire finestre
     btn_row = QHBoxLayout()
@@ -148,7 +159,7 @@ def _create_filters_section(analyzer):
     btn_row.addStretch()
     layout.addLayout(btn_row)
     
-    layout.addWidget(analyzer.time_windows_container)
+    layout.addWidget(scroll_area)
     
     # Separator
     separator = QFrame()
@@ -166,6 +177,10 @@ def _create_filters_section(analyzer):
     analyzer.percentile_input = QLineEdit("80")
     analyzer.percentile_input.setPlaceholderText("0-100")
     analyzer.percentile_input.setMaximumWidth(60)
+    # Aggiungi validazione
+    analyzer.percentile_input.textChanged.connect(
+        lambda text: _validate_percentile_input(analyzer.percentile_input, text)
+    )
     perc_row.addWidget(analyzer.percentile_input)
     perc_row.addStretch()
     layout.addLayout(perc_row)
@@ -175,6 +190,10 @@ def _create_filters_section(analyzer):
     analyzer.count_input = QLineEdit("3")
     analyzer.count_input.setPlaceholderText("es. 3")
     analyzer.count_input.setMaximumWidth(60)
+    # Aggiungi validazione
+    analyzer.count_input.textChanged.connect(
+        lambda text: _validate_positive_int_input(analyzer.count_input, text)
+    )
     count_row.addWidget(analyzer.count_input)
     count_row.addStretch()
     layout.addLayout(count_row)
@@ -184,6 +203,10 @@ def _create_filters_section(analyzer):
     analyzer.sprint_input = QLineEdit("10")
     analyzer.sprint_input.setPlaceholderText("es. 10")
     analyzer.sprint_input.setMaximumWidth(60)
+    # Aggiungi validazione
+    analyzer.sprint_input.textChanged.connect(
+        lambda text: _validate_positive_float_input(analyzer.sprint_input, text)
+    )
     sprint_row.addWidget(analyzer.sprint_input)
     sprint_row.addStretch()
     layout.addLayout(sprint_row)
@@ -213,6 +236,48 @@ def _reset_time_windows(analyzer):
     # Svuota eventuali campi aggiuntivi
     for i in range(6, len(analyzer.time_windows_inputs)):
         analyzer.time_windows_inputs[i].clear()
+
+
+def _validate_percentile_input(line_edit, text):
+    """Valida che il percentile sia tra 0-100"""
+    if text == "":
+        return
+    try:
+        value = float(text)
+        if not (0 <= value <= 100):
+            line_edit.setStyleSheet("QLineEdit { background-color: #ff6b6b; color: white; }")
+            return
+        line_edit.setStyleSheet("")
+    except ValueError:
+        line_edit.setStyleSheet("QLineEdit { background-color: #ff6b6b; color: white; }")
+
+
+def _validate_positive_int_input(line_edit, text):
+    """Valida che il valore sia un intero positivo"""
+    if text == "":
+        return
+    try:
+        value = int(text)
+        if value <= 0:
+            line_edit.setStyleSheet("QLineEdit { background-color: #ff6b6b; color: white; }")
+            return
+        line_edit.setStyleSheet("")
+    except ValueError:
+        line_edit.setStyleSheet("QLineEdit { background-color: #ff6b6b; color: white; }")
+
+
+def _validate_positive_float_input(line_edit, text):
+    """Valida che il valore sia un float positivo"""
+    if text == "":
+        return
+    try:
+        value = float(text)
+        if value < 0:
+            line_edit.setStyleSheet("QLineEdit { background-color: #ff6b6b; color: white; }")
+            return
+        line_edit.setStyleSheet("")
+    except ValueError:
+        line_edit.setStyleSheet("QLineEdit { background-color: #ff6b6b; color: white; }")
 
 
 def _create_processing_section(analyzer):
@@ -337,17 +402,24 @@ def create_theme_selector(analyzer):
     analyzer.theme_selector.addItems(list(TEMI.keys()))
     analyzer.theme_selector.setCurrentText(analyzer.current_theme)
     analyzer.theme_selector.currentTextChanged.connect(analyzer.apply_selected_theme)
-    analyzer.theme_selector.setMaximumWidth(90)
-    analyzer.theme_selector.setFixedHeight(10) 
+    analyzer.theme_selector.setMaximumWidth(110)
+    analyzer.theme_selector.setMinimumHeight(28)
     analyzer.theme_selector.setStyleSheet("""
         QComboBox {
             font-size: 10px;
-            padding: 1px 4px;
-            min-height: 20px;
-            max-height: 20px;
+            padding: 4px 8px;
+            min-height: 28px;
+            background-color: #0b2e24;
+            color: #f1f5f9;
+            border: 1px solid #334155;
+            border-radius: 4px;
         }
         QComboBox::drop-down {
-            width: 15px;
+            width: 20px;
+            border: none;
+        }
+        QComboBox::down-arrow {
+            image: none;
         }
     """)
     theme_layout.addWidget(analyzer.theme_selector)

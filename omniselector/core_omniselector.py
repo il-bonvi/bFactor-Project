@@ -196,18 +196,22 @@ def load_data_from_file(file_path, time_col_idx=0, power_col_idx=1):
 # FILTERING - Funzioni per filtraggio e selezione dati
 # ============================================================================
 
-def apply_data_filters(x_data, y_data, time_windows, percentile_min, values_per_window, sprint_value, current_params=None):
+def apply_data_filters(x_data, y_data, time_windows, percentile_min, values_per_window, sprint_value, base_residuals=None):
     """
-    Applica filtri ai dati basati su finestre temporali, percentile e sprint
+    Applica filtri ai dati basati su finestre temporali, percentile dei residui e sprint
+    
+    IMPORTANTE: Questo filtro usa i residui FORNITI (dal modello su raw data),
+    non li ricalcola. Garantisce stabilità perché i residui di riferimento non cambiano.
     
     Args:
         x_data: array di tempi (s)
         y_data: array di potenze (W)
         time_windows: lista di tuple (tmin, tmax) in secondi
-        percentile_min: percentile minimo per selezione (0-100)
-        values_per_window: numero massimo di valori per finestra
+        percentile_min: percentile minimo per selezione sui residui (0-100)
+        values_per_window: numero MASSIMO di valori per finestra
         sprint_value: tempo del valore sprint da includere sempre (s)
-        current_params: parametri modello esistenti [CP, Wp, Pmax, A] o None
+        base_residuals: array di residui PRE-CALCOLATI (dal modello su raw data)
+                       Se None, usa percentile su valori assoluti di potenza (fallback)
     
     Returns:
         tuple: (x_filtered, y_filtered, selected_mask)
@@ -222,62 +226,78 @@ def apply_data_filters(x_data, y_data, time_windows, percentile_min, values_per_
     if not time_windows:
         selected_mask[:] = True
         return x_arr, y_arr, selected_mask
-
-    # Fit model to all data to get residuals
-    try:
-        if current_params is not None:
-            CP, Wp, Pmax, A = current_params
-        else:
-            # Fallback: rough initial fit
-            p0 = [np.percentile(y_arr, 30), 20000, np.max(y_arr), 5]
-            params, _ = curve_fit(ompd_power, x_arr, y_arr, p0=p0, maxfev=20000)
-            CP, Wp, Pmax, A = params
-    except Exception:
-        # If fit fails, fallback to no filtering
-        selected_mask[:] = True
-        return x_arr, y_arr, selected_mask
-
-    # Calculate residuals
-    pred = (Wp / x_arr) * (1 - np.exp(-x_arr * (Pmax - CP) / Wp)) + CP
-    pred = np.where(x_arr <= TCPMAX, pred, pred - A * np.log(x_arr / TCPMAX))
-    residuals = y_arr - pred
-
-    # Global percentile threshold (only for t > 120)
-    mask_gt_120 = x_arr > 120
-    if np.any(mask_gt_120):
-        cut_global = np.percentile(residuals[mask_gt_120], percentile_min)
-    else:
-        cut_global = np.percentile(residuals, percentile_min)
-
+    
     selected_x = []
     selected_y = []
     
-    # Window selection
+    # Determina quale criterio usare per il filtro
+    if base_residuals is not None and len(base_residuals) == len(x_arr):
+        # Usa residui pre-calcolati (STABILE - dal modello base su raw data)
+        residuals = np.array(base_residuals, dtype=float)
+        use_residuals = True
+    else:
+        # Fallback: usa valori assoluti di potenza
+        residuals = y_arr.copy()
+        use_residuals = False
+    
+    # Calcola la soglia di percentile
+    try:
+        # Pulisci NaN
+        residuals_clean = residuals[~np.isnan(residuals)]
+        
+        if len(residuals_clean) > 0:
+            percentile_threshold = np.percentile(residuals_clean, percentile_min)
+            if np.isnan(percentile_threshold):
+                percentile_threshold = np.nanmin(residuals_clean)
+        else:
+            percentile_threshold = 0.0
+    except Exception:
+        percentile_threshold = 0.0
+    
+    # Window selection - seleziona punti basati su residui o valori assoluti
     for (tmin, tmax) in time_windows:
         mask = (x_arr >= tmin) & (x_arr <= tmax)
         idx = np.where(mask)[0]
         if idx.size == 0:
             continue
+        
         res_window = residuals[idx]
-        # Select top N residuals above global percentile threshold
-        sorted_idx = idx[np.argsort(res_window)[::-1]]
+        
+        # Ignora NaN
+        valid_mask = ~np.isnan(res_window)
+        if not np.any(valid_mask):
+            continue
+        
+        # Ordina DECRESCENTE (valori più alti per primi - migliori per il modello)
+        sorted_idx_local = np.argsort(res_window[valid_mask])[::-1]
+        sorted_idx = idx[valid_mask][sorted_idx_local]
+        
         count = 0
         for i in sorted_idx:
-            if residuals[i] >= cut_global:
+            # Prendi i punti sopra la soglia percentile
+            if residuals[i] >= percentile_threshold:
                 selected_x.append(x_arr[i])
                 selected_y.append(y_arr[i])
                 selected_mask[i] = True
                 count += 1
+            
             if count >= max(1, values_per_window):
                 break
     
-    # Sprint selection - always add closest point to sprint value if not already selected
+    # Sprint selection - sempre incluso se non già selezionato
     if sprint_value > 0 and len(x_arr) > 0:
-        sprint_idx = int(np.argmin(np.abs(x_arr - sprint_value)))
-        if 0 <= sprint_idx < len(selected_mask) and not selected_mask[sprint_idx]:
-            selected_x.append(x_arr[sprint_idx])
-            selected_y.append(y_arr[sprint_idx])
-            selected_mask[sprint_idx] = True
+        distances_to_sprint = np.abs(x_arr - sprint_value)
+        min_dist = np.min(distances_to_sprint)
+        epsilon = min_dist + 1e-10
+        candidate_indices = np.where(distances_to_sprint <= epsilon)[0]
+        
+        for sprint_idx in candidate_indices:
+            if 0 <= sprint_idx < len(selected_mask) and not selected_mask[sprint_idx]:
+                if not np.isnan(x_arr[sprint_idx]) and not np.isnan(y_arr[sprint_idx]):
+                    selected_x.append(x_arr[sprint_idx])
+                    selected_y.append(y_arr[sprint_idx])
+                    selected_mask[sprint_idx] = True
+                    break
     
     if not selected_x:
         raise ValueError("Nessun dato selezionato dalle finestre")

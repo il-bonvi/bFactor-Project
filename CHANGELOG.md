@@ -1,3 +1,15 @@
+## [0.5.1] - 2026-01-24
+### Omniselector - Stability & Filtering Architecture Fix
+- **Filtro percentile residuals - Architettura stabile**:
+  - Implementato sistema a due livelli: base_model (su tutti i dati raw) + final_model (su dati filtrati)
+  - Base model calcolato una volta al caricamento, fornisce residuals stabili per il filtro
+  - Stesso percentile seleziona sempre gli stessi punti (non cambia tra elaborazioni)
+  - Risolto problema "dati insufficienti" dopo multiple elaborazioni
+- **Grafico residuals - Ordinamento dati**:
+  - Ordinamento dati per tempo prima del plot (asse X log-scaled)
+  - Linea residuals ora liscia e regolare, no jump strani
+- **Summary 10 fix implementati**: Memory leaks (annotation removal), codice duplicato, float comparison, input validation, event cleanup, filter recalculation
+
 ## [0.5] - 2026-01-23
 ### bTeam - Dashboard squadre/atleti (prototipo)
 - Gestione squadre, atleti e attività con database locale (SQLite, SQLAlchemy)
