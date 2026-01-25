@@ -356,15 +356,6 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         <div id='sidebar-content'></div>
     </div>
 
-    <div class='info-panel'>
-        <h3>📊 Traccia 3D</h3>
-        <div class='info-row'><span class='info-label'>Distanza:</span><span class='info-value'>{distance_km:.2f} km</span></div>
-        <div class='info-row'><span class='info-label'>Altitudine:</span><span class='info-value'>{elevation_gain:.0f} m</span></div>
-        <div class='info-row'><span class='info-label'>Power max:</span><span class='info-value'>{max_power:.0f} W</span></div>
-        <div class='info-row'><span class='info-label'>Power med:</span><span class='info-value'>{avg_power:.0f} W</span></div>
-        <div class='info-row'><span class='info-label'>Efforts:</span><span class='info-value'>{len(efforts)}</span></div>
-    </div>
-
     <div class='controls'>
         <select id='styleSelect'>
             <option value='0'>Outdoor</option>
@@ -439,7 +430,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
             
             const html = `
                 <div class="sidebar-section">
-                    <div class="sidebar-title">⚡ POTENZA - Effort #${{idx + 1}}</div>
+                    <div class="sidebar-title">⚡ POTENZA & RELATIVA & CADENZA & HR - Effort #${{idx + 1}}</div>
+                    <div style="color: #60a5fa; font-size: 11px; margin-bottom: 8px; font-weight: 600;">Potenza</div>
                     <div class="sidebar-row">
                         <span class="sidebar-label">Media</span>
                         <span class="sidebar-value">${{effort.avg.toFixed(0)}} W</span>
@@ -460,10 +452,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                         <span class="sidebar-label">Rapporto</span>
                         <span class="sidebar-value">${{effort.watts_ratio.toFixed(2)}}</span>
                     </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-title">⚖️ POTENZA RELATIVA</div>
+                    
+                    <div style="color: #60a5fa; font-size: 11px; margin-top: 12px; margin-bottom: 8px; font-weight: 600;">Potenza Relativa</div>
                     <div class="sidebar-row">
                         <span class="sidebar-label">Media</span>
                         <span class="sidebar-value">${{effort.w_kg.toFixed(2)}} W/kg</span>
@@ -472,10 +462,18 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                         <span class="sidebar-label">Best 5s</span>
                         <span class="sidebar-value">${{effort.best_5s_watt_kg.toFixed(2)}} W/kg</span>
                     </div>
+                    
+                    <div style="color: #60a5fa; font-size: 11px; margin-top: 12px; margin-bottom: 8px; font-weight: 600;">Cadenza & HR</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">🌀 Cadenza</span>
+                        <span class="sidebar-value">${{effort.avg_cadence.toFixed(0)}} rpm</span>
+                    </div>
+                    ${{hrHtml}}
                 </div>
                 
                 <div class="sidebar-section">
-                    <div class="sidebar-title">⏱️ TEMPO & DISTANZA</div>
+                    <div class="sidebar-title">⏱️ TEMPO & DISTANZA & ALTIMETRIA & VAM</div>
+                    <div style="color: #60a5fa; font-size: 11px; margin-bottom: 8px; font-weight: 600;">Tempo & Distanza</div>
                     <div class="sidebar-row">
                         <span class="sidebar-label">Durata</span>
                         <span class="sidebar-value">${{effort.duration}}s</span>
@@ -488,10 +486,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                         <span class="sidebar-label">Velocità</span>
                         <span class="sidebar-value">${{effort.avg_speed.toFixed(1)}} km/h</span>
                     </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-title">🏔️ ALTIMETRIA</div>
+                    
+                    <div style="color: #60a5fa; font-size: 11px; margin-top: 12px; margin-bottom: 8px; font-weight: 600;">Altimetria</div>
                     <div class="sidebar-row">
                         <span class="sidebar-label">Guadagno</span>
                         <span class="sidebar-value">${{effort.elevation.toFixed(0)}} m</span>
@@ -504,10 +500,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                         <span class="sidebar-label">Massima</span>
                         <span class="sidebar-value">${{effort.max_grade.toFixed(1)}}%</span>
                     </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-title">💨 VAM</div>
+                    
+                    <div style="color: #60a5fa; font-size: 11px; margin-top: 12px; margin-bottom: 8px; font-weight: 600;">VAM</div>
                     <div class="sidebar-row">
                         <span class="sidebar-label">Effettivo</span>
                         <span class="sidebar-value">${{effort.vam.toFixed(0)}} m/h</span>
@@ -516,15 +510,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                 </div>
                 
                 <div class="sidebar-section">
-                    <div class="sidebar-title">🌀 CADENZA</div>
-                    <div class="sidebar-row">
-                        <span class="sidebar-label">Media</span>
-                        <span class="sidebar-value">${{effort.avg_cadence.toFixed(0)}} rpm</span>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-title">🔋 LAVORO (kJ)</div>
+                    <div class="sidebar-title">🔋 LAVORO & 🔥 DENSITÀ ORARIA</div>
+                    <div style="color: #60a5fa; font-size: 11px; margin-bottom: 8px; font-weight: 600;">Lavoro (kJ)</div>
                     <div class="sidebar-row">
                         <span class="sidebar-label">Totale</span>
                         <span class="sidebar-value">${{effort.kj.toFixed(0)}} kJ</span>
@@ -541,10 +528,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                         <span class="sidebar-label">Per kg > CP</span>
                         <span class="sidebar-value">${{effort.kj_kg_over_cp.toFixed(1)}} kJ/kg</span>
                     </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-title">🔥 DENSITÀ ORARIA (kJ/h/kg)</div>
+                    
+                    <div style="color: #60a5fa; font-size: 11px; margin-top: 12px; margin-bottom: 8px; font-weight: 600;">Densità Oraria (kJ/h/kg)</div>
                     <div class="sidebar-row">
                         <span class="sidebar-label">Totale</span>
                         <span class="sidebar-value">${{effort.kj_h_kg.toFixed(1)}} kJ/h/kg</span>
@@ -554,8 +539,6 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                         <span class="sidebar-value">${{effort.kj_h_kg_over_cp.toFixed(1)}} kJ/h/kg</span>
                     </div>
                 </div>
-                
-                ${{hrHtml}}
             `;
             
             document.getElementById('sidebar-content').innerHTML = html;
