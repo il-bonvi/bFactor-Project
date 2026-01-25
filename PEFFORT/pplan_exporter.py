@@ -208,7 +208,8 @@ def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]
         if avg_grade >= 4.5:
             diff_vam = abs(vam_teorico - vam)
             arrow = '⬆️' if vam_teorico - vam > 0 else ('⬇️' if vam_teorico - vam < 0 else '')
-            wkg_teoric = vam / (gradient_factor * 100)
+            # Evita divisione per zero nel calcolo W/kg teorico
+            wkg_teoric = vam / (gradient_factor * 100) if gradient_factor > 0 else 0
             diff_wkg = w_kg - wkg_teoric
             perc_err = (diff_wkg / w_kg * 100) if w_kg != 0 else 0
             sign = '+' if perc_err > 0 else ('-' if perc_err < 0 else '')
