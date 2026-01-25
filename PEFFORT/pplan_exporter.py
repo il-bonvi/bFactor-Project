@@ -182,13 +182,13 @@ def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]
         watts_ratio = avg_watts_first / avg_watts_second if avg_watts_second > 0 else 0
         
         # kJ calculations
-        kj = joules_cumulative[e-1] / 1000 if e-1 < len(joules_cumulative) else 0
-        kj_over_cp = joules_over_cp_cumulative[e-1] / 1000 if e-1 < len(joules_over_cp_cumulative) else 0
+        kj = joules_cumulative[s] / 1000 if s < len(joules_cumulative) else 0
+        kj_over_cp = joules_over_cp_cumulative[s] / 1000 if s < len(joules_over_cp_cumulative) else 0
         kj_kg = (kj / weight) if weight > 0 else 0
         kj_kg_over_cp = (kj_over_cp / weight) if weight > 0 else 0
         hours_seg = duration / 3600
-        kj_h_kg = (kj / hours_seg / weight) if hours_seg > 0 and weight > 0 else 0
-        kj_h_kg_over_cp = (kj_over_cp / hours_seg / weight) if hours_seg > 0 and weight > 0 else 0
+        kj_h_kg = (kj_kg / hours_seg) if hours_seg > 0 else 0
+        kj_h_kg_over_cp = (kj_kg_over_cp / hours_seg) if hours_seg > 0 else 0
         
         # VAM teorico (solo se salita significativa)
         gradient_factor = 2 + (avg_grade / 10) if avg_grade > 0 else 2

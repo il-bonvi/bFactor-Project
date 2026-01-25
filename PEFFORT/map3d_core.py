@@ -194,13 +194,14 @@ def calculate_effort_parameters(s: int, e: int, avg: float,
     vam = elevation_gain / (duration / 3600) if duration > 0 else 0
     
     # Joule calculations
-    kj = joules_cumulative[e-1] / 1000 if e-1 < len(joules_cumulative) else 0
-    kj_over_cp = joules_over_cp_cumulative[e-1] / 1000 if e-1 < len(joules_over_cp_cumulative) else 0
+    # Use cumulative joules at start of effort (total work at moment effort begins)
+    kj = joules_cumulative[s] / 1000 if s < len(joules_cumulative) else 0
+    kj_over_cp = joules_over_cp_cumulative[s] / 1000 if s < len(joules_over_cp_cumulative) else 0
     kj_kg = (kj / weight) if weight > 0 else 0
     kj_kg_over_cp = (kj_over_cp / weight) if weight > 0 else 0
     hours_seg = duration / 3600
-    kj_h_kg = (kj / hours_seg / weight) if hours_seg > 0 and weight > 0 else 0
-    kj_h_kg_over_cp = (kj_over_cp / hours_seg / weight) if hours_seg > 0 and weight > 0 else 0
+    kj_h_kg = (kj_kg / hours_seg) if hours_seg > 0 else 0
+    kj_h_kg_over_cp = (kj_kg_over_cp / hours_seg) if hours_seg > 0 else 0
     
     # VAM teorico (solo se salita significativa)
     gradient_factor = 2 + (avg_grade / 10) if avg_grade > 0 else 2

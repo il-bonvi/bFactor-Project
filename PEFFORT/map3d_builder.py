@@ -57,26 +57,26 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
     try:
         logger.info("Generazione mappa 3D (orchestrator)...")
         
-        # ===== STEP 1: Data Validation =====
-        # Filtra coordinate non valide (NaN, fuori range, 0,0)
+        # ===== STEP 1: Data Extraction =====
+        # Use complete DataFrame for all calculations (including GPS-less points with power data)
+        # But filter GPS coordinates for visualization only
         lat_all = df['position_lat'].values
         lon_all = df['position_long'].values
         nan_mask = (~np.isnan(lat_all)) & (~np.isnan(lon_all))
         range_mask = (np.abs(lat_all) <= 90) & (np.abs(lon_all) <= 180)
         zero_mask = ~((np.abs(lat_all) < 1e-9) & (np.abs(lon_all) < 1e-9))
         valid_mask = nan_mask & range_mask & zero_mask
-
-        df_valid = df.loc[valid_mask].copy()
-        logger.info(f"Dati geografici: {len(df_valid)} punti validi su {len(df)} totali")
-
+        df_geom = df.loc[valid_mask].copy()  # For GeoJSON visualization only
+        logger.info(f"Dati geografici: {len(df_geom)} punti validi su {len(df)} totali")
+        
         # ===== STEP 2: Coordinate Extraction & GeoJSON =====
-        # Estrai traccia GeoJSON dal DF filtrato e mappatura indici originali
-        geojson_data, orig_indices = export_traccia_geojson(df_valid)
+        # Estrai traccia GeoJSON dal DF filtrato per GPS (visualization)
+        geojson_data, orig_indices = export_traccia_geojson(df_geom)
         geojson_str = json.dumps(geojson_data)
 
         # ===== STEP 3: Map Centering & Zoom =====
-        lat = df_valid['position_lat'].values
-        lon = df_valid['position_long'].values
+        lat = df_geom['position_lat'].values
+        lon = df_geom['position_long'].values
         
         # Valida dati geografici
         if len(lat) == 0 or len(lon) == 0:
@@ -108,8 +108,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         distance_km = (df['distance'].values[-1] - df['distance'].values[0]) / 1000 if 'distance' in df.columns else 0
         
         # ===== STEP 5: Elevation Data Preparation =====
-        alt_values = df_valid['altitude'].values if 'altitude' in df_valid.columns else np.zeros(len(df_valid))
-        dist_km_values = df_valid['distance_km'].values if 'distance_km' in df_valid.columns else np.zeros(len(df_valid))
+        alt_values = df['altitude'].values if 'altitude' in df.columns else np.zeros(len(df))
+        dist_km_values = df['distance_km'].values if 'distance_km' in df.columns else np.zeros(len(df))
         alt_total = alt_values.tolist()
         dist_total = dist_km_values.tolist()
         
@@ -122,7 +122,7 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         grade_all = df['grade'].values if 'grade' in df.columns else np.zeros(len(df))
         distance_all = df['distance'].values if 'distance' in df.columns else np.zeros(len(df))
         
-        # Prepare data for core processing
+        # Prepare data for core processing - use df (complete) for energy calcs to include all power data
         efforts_data_json = prepare_efforts_data(
             df, efforts, ftp, weight, geojson_data, 
             orig_indices, alt_values, dist_km_values
