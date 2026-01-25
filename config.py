@@ -25,14 +25,19 @@ MAPTILER_KEY = os.getenv(
     None
 )
 
-# Validazione chiavi critiche
-if not MAPTILER_KEY:
-    raise ValueError(
-        "MAPTILER_KEY non configurata!\n"
-        "1. Copia .env.example a .env\n"
-        "2. Aggiungi la tua API key di MapTiler a .env\n"
-        "3. Visita https://cloud.maptiler.com/ per ottenere una chiave gratuita"
-    )
-
 # Mapbox token (pubblico - può rimanere qui)
 MAPBOX_TOKEN = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
+
+
+def validate_maptiler_key():
+    """
+    Valida la presenza della chiave MapTiler.
+    Da chiamare solo quando effettivamente necessaria (quando si usano le mappe 3D).
+    """
+    if not MAPTILER_KEY:
+        raise ValueError(
+            "MAPTILER_KEY non configurata!\n"
+            "1. Copia .env.example a .env\n"
+            "2. Aggiungi la tua API key di MapTiler a .env\n"
+            "3. Visita https://cloud.maptiler.com/ per ottenere una chiave gratuita"
+        )

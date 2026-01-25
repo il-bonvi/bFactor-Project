@@ -33,7 +33,7 @@ from .plotting_metapow import (
     create_overlaid_comparison_plot, create_overlaid_comparison_dialog, create_vt_analysis_dialog
 )
 from .vtcomparison_metapow import show_vt_comparison_dialog
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 
 class ImportProfileDialog(QDialog):

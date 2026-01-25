@@ -9,3 +9,5 @@ xhtml2pdf
 requests
 sqlalchemy
 python-dotenv
+openpyxl
+Pillow

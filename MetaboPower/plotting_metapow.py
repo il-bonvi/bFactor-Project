@@ -13,7 +13,7 @@ Funzioni per generare grafici di confronto, analisi VT, selezione segmenti
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas, NavigationToolbar2QT as NavigationToolbar
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget, QTabWidget
 from PySide6.QtGui import QFont
