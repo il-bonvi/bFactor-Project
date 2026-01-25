@@ -142,14 +142,18 @@ def calculate_effort_parameters(s: int, e: int, avg: float,
     grade_all = df['grade'].values if 'grade' in df.columns else np.zeros(len(df))
     distance_all = df['distance'].values if 'distance' in df.columns else np.zeros(len(df))
     
-    # Segmenti dati
+    # Segmenti dati (con boundary checks appropriati)
+    # Assicura che gli indici siano validi
+    s = max(0, s)
+    e = max(s, min(e, len(power_all)))
+    
     seg_power = power_all[s:e]
     seg_time = time_sec[s:e]
-    seg_alt_arr = alt_values[s:e] if s < len(alt_values) and e <= len(alt_values) else alt_values
+    seg_alt_arr = alt_values[max(0, s):min(e, len(alt_values))]
     seg_hr = hr_all[s:e]
     seg_cadence = cadence_all[s:e]
     seg_grade = grade_all[s:e]
-    seg_dist_km = dist_km_values[s:e] if s < len(dist_km_values) and e <= len(dist_km_values) else dist_km_values
+    seg_dist_km = dist_km_values[max(0, s):min(e, len(dist_km_values))]
     
     # Durata ed elevazione
     duration = int(seg_time[-1] - seg_time[0] + 1) if len(seg_time) > 0 else 0

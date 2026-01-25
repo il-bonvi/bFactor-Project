@@ -55,7 +55,13 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
         else:
             img_html = "<p><i>Immagine grafico non disponibile</i></p>"
 
-        # Dati per calcoli
+        # Dati per calcoli (con controllo colonne)
+        required_cols = ["power", "time_sec", "altitude", "distance", "heartrate", "grade", "cadence", "distance_km"]
+        for col in required_cols:
+            if col not in df.columns:
+                logger.warning(f"Colonna mancante nel DataFrame: {col}")
+                df[col] = 0  # Fallback a zero per colonne mancanti
+        
         power = df["power"].values
         time_sec = df["time_sec"].values
         alt = df["altitude"].values
@@ -134,15 +140,23 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
 
                 best_5s_watt = 0
                 if len(seg_power) >= 5:
+                    # Calcolo best 5s - trova la massima media mobile di 5 secondi
+                    # range(len(seg_power)-4) dà tutti gli indici di partenza validi
                     best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
                     best_5s_watt = int(best_5s)
 
-                # Calcolo kJ
+                # Calcolo kJ (con logging per gap > 30s)
                 kj_seg = 0
+                skipped_gaps = 0
                 for k in range(1, len(seg_time)):
                     dt = seg_time[k] - seg_time[k-1]
                     if 0 < dt < 30:
                         kj_seg += seg_power[k] * dt
+                    elif dt >= 30:
+                        skipped_gaps += 1
+                
+                if skipped_gaps > 0:
+                    logger.warning(f"Effort #{effort_to_rank[i]}: {skipped_gaps} gap temporali >30s saltati nel calcolo kJ")
 
                 html_content += f"""
                     <tr>
@@ -192,7 +206,12 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
                 
                 max_speed = 0
                 if len(seg_dist_km) > 1:
-                    diffs = [(seg_dist_km[k+1]-seg_dist_km[k])/(time_sec[start+k+1]-time_sec[start+k])*3600 for k in range(len(seg_dist_km)-1)]
+                    diffs = []
+                    for k in range(len(seg_dist_km)-1):
+                        dt = time_sec[start+k+1] - time_sec[start+k]
+                        if dt > 0:  # Evita divisione per zero
+                            speed_kmh = (seg_dist_km[k+1] - seg_dist_km[k]) / dt * 3600
+                            diffs.append(speed_kmh)
                     max_speed = max(diffs) if diffs else 0
 
                 html_content += f"""
@@ -385,7 +404,8 @@ def plot_unified_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
         if avg_grade >= 4.5:
             diff_vam = abs(vam_teorico - vam)
             arrow = '⬆️' if vam_teorico - vam > 0 else ('⬇️' if vam_teorico - vam < 0 else '')
-            wkg_teoric = vam / (gradient_factor * 100)
+            # Evita divisione per zero nel calcolo W/kg teorico
+            wkg_teoric = vam / (gradient_factor * 100) if gradient_factor > 0 else 0
             diff_wkg = avg_power_per_kg - wkg_teoric
             perc_err = (diff_wkg / avg_power_per_kg * 100) if avg_power_per_kg != 0 else 0
             sign = '+' if perc_err > 0 else ('-' if perc_err < 0 else '')
