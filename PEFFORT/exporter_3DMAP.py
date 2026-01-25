@@ -209,23 +209,28 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; }}
-        #map {{ position: absolute; top: 0; bottom: 320px; width: 100%; height: calc(100% - 320px); }}
-        #elevation-chart {{ position: absolute; bottom: 0; width: 100%; height: 300px; background: rgba(15,23,42,.95); border-top: 1px solid rgba(255,255,255,.2); }}
+        #map {{ position: absolute; top: 0; bottom: 180px; width: 100%; height: calc(100% - 180px); }}
+        #elevation-chart {{ position: absolute; bottom: 0; width: 100%; height: 180px; background: rgba(15,23,42,.95); overflow: hidden; }}
+        #resize-handle {{ position: absolute; top: -5px; left: 0; right: 0; width: 100%; height: 10px; cursor: ns-resize; background: transparent; z-index: 20; }}
+        #hover-tooltip {{ position: fixed; top: 10px; right: 20px; background: rgba(15,23,42,.95); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); font-size: 12px; color: #fbbf24; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.5); }}
         .info-panel {{ position: absolute; top: 20px; left: 20px; background: rgba(15,23,42,.95); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); font-size: 14px; max-width: 280px; z-index: 10; box-shadow: 0 4px 20px rgba(0,0,0,.4); }}
         .info-panel h3 {{ color: #60a5fa; margin-bottom: 12px; font-size: 16px; }}
         .info-row {{ display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.1); }}
         .info-row:last-child {{ border-bottom: none; }}
         .info-label {{ color: #9ca3af; font-weight: 500; }}
         .info-value {{ color: #fbbf24; font-weight: 600; }}
-        .controls {{ position: absolute; bottom: 320px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; }}
+        .controls {{ position: absolute; bottom: 180px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; }}
         .control-btn {{ background: #1e40af; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .3s ease; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
         .control-btn:hover {{ background: #1e3a8a; box-shadow: 0 4px 12px rgba(0,0,0,.4); }}
         #styleSelect {{ background: #1e40af; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
     </style>
 </head>
 <body>
+    <div id='hover-tooltip'></div>
     <div id='map'></div>
-    <div id='elevation-chart'></div>
+    <div id='elevation-chart'>
+        <div id='resize-handle'></div>
+    </div>
 
     <div class='info-panel'>
         <h3>📊 Traccia 3D</h3>
@@ -342,7 +347,7 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                 name: 'Altitudine',
                 line: {{ color: '#9ca3af', width: 1 }},
                 fillcolor: 'rgba(156,163,175,0.3)',
-                hoverinfo: 'skip'
+                hovertemplate: '<b>Distanza:</b> %{{x:.2f}} km<br><b>Altitudine:</b> %{{y:.0f}} m<extra></extra>'
             }};
             
             // Tracce effort sovrapposte
@@ -353,35 +358,34 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                     y: effort.altitude,
                     type: 'scatter',
                     name: `Effort #${{idx + 1}}`,
-                    line: {{ color: effort.color, width: 2 }},
+                    line: {{ color: effort.color, width: 3 }},
                     mode: 'lines',
-                    hoverinfo: 'skip',
-                    opacity: 0.7,
+                    hovertemplate: '<b>Effort #' + (idx + 1) + '</b><br><b>Distanza:</b> %{{x:.2f}} km<br><b>Altitudine:</b> %{{y:.0f}} m<extra></extra>',
+                    opacity: 1,
                     marker: {{ opacity: 0 }}
                 }};
                 traces.push(effortTrace);
             }});
             
             const layout = {{
-                title: {{
-                    text: 'Profilo Altimetrico Completo',
-                    font: {{ color: '#fff', size: 14 }}
-                }},
+                title: {{ text: '' }},
                 xaxis: {{
-                    title: 'Distanza (km)',
+                    title: '',
                     color: '#9ca3af',
-                    gridcolor: 'rgba(255,255,255,0.1)'
+                    gridcolor: 'rgba(255,255,255,0.1)',
+                    showgrid: false
                 }},
                 yaxis: {{
-                    title: 'Altitudine (m)',
+                    title: '',
                     color: '#9ca3af',
-                    gridcolor: 'rgba(255,255,255,0.1)'
+                    gridcolor: 'rgba(255,255,255,0.1)',
+                    showgrid: false
                 }},
                 plot_bgcolor: 'rgba(15,23,42,0)',
                 paper_bgcolor: 'rgba(15,23,42,.95)',
-                font: {{ family: 'Segoe UI', color: '#9ca3af' }},
-                margin: {{ l: 50, r: 20, t: 50, b: 40 }},
-                hovermode: false,
+                font: {{ family: 'Segoe UI', color: '#9ca3af', size: 11 }},
+                margin: {{ l: 30, r: 10, t: 5, b: 20 }},
+                hovermode: 'x unified',
                 showlegend: false
             }};
             
@@ -390,20 +394,110 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         }}
 
         function highlightEffortInChart(idx) {{
-            // Modifica l'opacità delle tracce: quella selezionata a 1, altre a 0.3
+            // Modifica l'opacità delle tracce: quella selezionata a 1, altre a 0.2
             const update = {{
-                opacity: elevationData.efforts.map((_, i) => i === idx ? 1 : 0.3)
+                opacity: elevationData.efforts.map((_, i) => i === idx ? 1 : 0.2),
+                'line.width': elevationData.efforts.map((_, i) => i === idx ? 4 : 3)
             }};
             Plotly.restyle('elevation-chart', update, elevationData.efforts.map((_, i) => i + 1));
+            
+            // Aggiungi linee verticali all'inizio e fine dell'effort
+            const effort = elevationData.efforts[idx];
+            const startDist = effort.distance[0];
+            const endDist = effort.distance[effort.distance.length - 1];
+            const maxAlt = Math.max(...effort.altitude);
+            
+            // Crea annotation per linea verticale inizio
+            const startLine = {{
+                x: startDist,
+                y: maxAlt * 0.5,
+                xref: 'x',
+                yref: 'y',
+                mode: 'lines',
+                line: {{ color: effort.color, width: 2, dash: 'dash' }},
+                showlegend: false
+            }};
+            
+            // Crea annotation per info effort
+            const infoBox = {{
+                x: (startDist + endDist) / 2,
+                y: maxAlt * 0.9,
+                text: `<b>Effort #${{idx + 1}}</b><br>${{effort.avg.toFixed(0)}} W`,
+                showarrow: false,
+                bgcolor: effort.color,
+                bordercolor: '#fff',
+                borderwidth: 1,
+                font: {{ color: '#fff', size: 11 }},
+                align: 'center'
+            }};
+            
+            Plotly.relayout('elevation-chart', {{
+                annotations: [infoBox],
+                'shapes[0]': {{
+                    type: 'line',
+                    x0: startDist,
+                    x1: startDist,
+                    y0: 0,
+                    y1: maxAlt,
+                    xref: 'x',
+                    yref: 'y',
+                    line: {{ color: effort.color, width: 2, dash: 'dash' }}
+                }},
+                'shapes[1]': {{
+                    type: 'line',
+                    x0: endDist,
+                    x1: endDist,
+                    y0: 0,
+                    y1: maxAlt,
+                    xref: 'x',
+                    yref: 'y',
+                    line: {{ color: effort.color, width: 2, dash: 'dash' }}
+                }}
+            }});
         }}
 
         function resetChartHighlight() {{
             // Torna all'opacità originale di tutte le tracce
             const update = {{
-                opacity: elevationData.efforts.map(() => 0.7)
+                opacity: elevationData.efforts.map(() => 1),
+                'line.width': elevationData.efforts.map(() => 3)
             }};
             Plotly.restyle('elevation-chart', update, elevationData.efforts.map((_, i) => i + 1));
+            
+            // Rimuovi linee verticali e annotation
+            Plotly.relayout('elevation-chart', {{
+                annotations: [],
+                shapes: []
+            }});
         }}
+
+        // Resize handle per l'altimetria
+        let isResizing = false;
+        const resizeHandle = document.getElementById('resize-handle');
+        const elevationChart = document.getElementById('elevation-chart');
+        const mapDiv = document.getElementById('map');
+
+        resizeHandle.addEventListener('mousedown', (e) => {{
+            isResizing = true;
+            e.preventDefault();
+        }});
+
+        document.addEventListener('mousemove', (e) => {{
+            if (!isResizing) return;
+            
+            const newHeight = Math.max(100, Math.min(400, window.innerHeight - e.clientY));
+            
+            elevationChart.style.height = newHeight + 'px';
+            mapDiv.style.bottom = newHeight + 'px';
+            mapDiv.style.height = 'calc(100% - ' + newHeight + 'px)';
+            
+            // Ridisegna i grafici
+            Plotly.Plots.resize('elevation-chart');
+        }});
+
+        document.addEventListener('mouseup', () => {{
+            isResizing = false;
+        }});
 
         function addTerrain() {{
             try {{
