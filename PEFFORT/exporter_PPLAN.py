@@ -15,9 +15,44 @@ import logging
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.io as pio
 from .engine_PEFFORT import format_time_hhmmss, get_zone_color
 
 logger = logging.getLogger(__name__)
+
+# Token Mapbox pubblico per rendering in QWebEngineView
+# Questo è un token pubblico di esempio - può essere sostituito con uno personale
+pio.templates.default = "plotly"
+MAPBOX_TOKEN = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
+
+
+def calculate_zoom_level(lat_values, lon_values):
+    """
+    Calcola il livello di zoom ottimale basato sull'estensione geografica della traccia.
+    Utilizza la formula empirica di Mapbox per fit all bounds.
+    """
+    lat_range = np.nanmax(lat_values) - np.nanmin(lat_values)
+    lon_range = np.nanmax(lon_values) - np.nanmin(lon_values)
+    
+    # Usa il range maggiore per determinare lo zoom
+    max_range = max(lat_range, lon_range)
+    
+    # Formula empirica per Mapbox zoom level
+    # Più range è grande, zoom è basso (view più ampia)
+    if max_range > 1.0:
+        zoom = 8
+    elif max_range > 0.5:
+        zoom = 9
+    elif max_range > 0.2:
+        zoom = 10
+    elif max_range > 0.1:
+        zoom = 11
+    elif max_range > 0.05:
+        zoom = 12
+    else:
+        zoom = 13
+    
+    return zoom
 
 
 def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
@@ -134,11 +169,15 @@ def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]
     center_lat = np.nanmean(lat[valid])
     center_lon = np.nanmean(lon[valid])
     
+    # Calcola zoom dinamico in base all'estensione della traccia
+    zoom_level = calculate_zoom_level(lat[valid], lon[valid])
+    
     fig.update_layout(
         mapbox=dict(
+            accesstoken=MAPBOX_TOKEN,
             style="open-street-map",
             center=dict(lat=center_lat, lon=center_lon),
-            zoom=13
+            zoom=zoom_level
         ),
         autosize=True,
         margin=dict(l=0, r=0, t=30, b=0),

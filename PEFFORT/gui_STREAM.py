@@ -57,6 +57,10 @@ class IndoorTab(QWidget):
         # Web view per il grafico
         self.web_view = QWebEngineView()
         self.web_view.setStyleSheet("background: #0f172a; border-radius: 8px;")
+        # Configura settings per caricare Mapbox/tile da pagine HTML locali
+        from PySide6.QtWebEngineCore import QWebEngineSettings
+        web_settings = self.web_view.settings()
+        web_settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
         layout.addWidget(self.web_view, stretch=3)
         
         # Tabelle efforts e sprints
@@ -93,7 +97,7 @@ class IndoorTab(QWidget):
                        params_str: str):
         """Aggiorna la visualizzazione con i nuovi dati analizzati"""
         try:
-            from .exporter_indoor import plot_indoor_html
+            from .exporter_STREAM import plot_indoor_html
             
             logger.info("Generazione grafico indoor...")
             self.status_label.setText("⏳ Generazione grafico...")

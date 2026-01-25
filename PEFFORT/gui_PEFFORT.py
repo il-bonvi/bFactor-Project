@@ -29,8 +29,8 @@ from pathlib import Path
 from .engine_PEFFORT import format_time_hhmmss
 from .exporter_PEFFORT import create_pdf_report, plot_unified_html
 from .config_PEFFORT import AnalysisConfig, AthleteProfile, EffortConfig, SprintConfig
-from .gui_planimetria import PlanimetriaTab
-from .gui_indoor import IndoorTab
+from .gui_PPLAN import PlanimetriaTab
+from .gui_STREAM import IndoorTab
 
 # Import shared styles
 from shared.styles import TEMI, get_style
@@ -214,6 +214,10 @@ class EffortAnalyzer(QWidget):
 
         self.web_view = QWebEngineView()
         self.web_view.setStyleSheet("background: #0f172a; border-radius: 8px;")
+        # Configura settings per caricare Mapbox/tile da pagine HTML locali
+        from PySide6.QtWebEngineCore import QWebEngineSettings
+        web_settings = self.web_view.settings()
+        web_settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
         content_area.addWidget(self.web_view, stretch=3)
 
         tables_container = QHBoxLayout()

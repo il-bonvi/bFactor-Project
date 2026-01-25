@@ -57,6 +57,10 @@ class PlanimetriaTab(QWidget):
         # Web view per la mappa
         self.web_view = QWebEngineView()
         self.web_view.setStyleSheet("background: #0f172a; border-radius: 8px;")
+        # Configura settings per caricare Mapbox/tile da pagine HTML locali
+        from PySide6.QtWebEngineCore import QWebEngineSettings
+        web_settings = self.web_view.settings()
+        web_settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
         layout.addWidget(self.web_view, stretch=3)
         
         # Tabelle efforts e sprints
@@ -93,7 +97,7 @@ class PlanimetriaTab(QWidget):
                        params_str: str):
         """Aggiorna la visualizzazione con i nuovi dati analizzati"""
         try:
-            from .exporter_planimetria import plot_planimetria_html
+            from .exporter_PPLAN import plot_planimetria_html
             
             logger.info("Generazione mappa planimetrica...")
             self.status_label.setText("⏳ Generazione mappa...")
