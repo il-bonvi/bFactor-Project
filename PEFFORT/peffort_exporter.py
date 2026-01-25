@@ -19,7 +19,7 @@ import plotly.io as pio
 import io
 from xhtml2pdf import pisa
 
-from .engine_PEFFORT import (
+from .peffort_engine import (
     format_time_hhmmss, format_time_mmss, get_zone_color
 )
 
@@ -367,8 +367,8 @@ def plot_unified_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
         kj_over_cp = joules_over_cp_cumulative[s] / 1000 if s < len(joules_over_cp_cumulative) else 0
         kj_kg = (kj / weight) if weight > 0 else 0
         kj_kg_over_cp = (kj_over_cp / weight) if weight > 0 else 0
-        kj_h_kg = (kj / hours / weight) if hours > 0 and weight > 0 else 0
-        kj_h_kg_over_cp = (kj_over_cp / hours / weight) if hours > 0 and weight > 0 else 0
+        kj_h_kg = (kj_kg / hours) if hours > 0 else 0
+        kj_h_kg_over_cp = (kj_kg_over_cp / hours) if hours > 0 else 0
         
         gradient_factor = 2 + (avg_grade / 10)
         vam_teorico = (avg_power / weight) * (gradient_factor * 100) if weight > 0 else 0

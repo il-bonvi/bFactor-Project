@@ -6,16 +6,15 @@
 # ==============================================================================
 
 """
-GUI PLANIMETRIA - Scheda visualizzazione planimetrica (mappa dall'alto)
-Vista 2D degli effort su coordinate geografiche
+GUI STREAM - Scheda visualizzazione stream (solo stream potenza)
+Analisi effort senza GPS/altimetria - ideale per indoor trainer
 """
 
 from typing import Optional, List, Tuple, Dict, Any
 import logging
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QHBoxLayout,
-    QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QMessageBox,
-    QComboBox
+    QWidget, QVBoxLayout, QLabel, QHBoxLayout, 
+    QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QMessageBox
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import QUrl
@@ -23,46 +22,29 @@ import tempfile
 import webbrowser
 import pandas as pd
 
-from .engine_PEFFORT import format_time_hhmmss
+from .peffort_engine import format_time_hhmmss
 
 logger = logging.getLogger(__name__)
 
 
-class PlanimetriaTab(QWidget):
-    """Tab per visualizzazione planimetrica degli effort"""
+class StreamTab(QWidget):
+    """Tab per visualizzazione stream - solo stream potenza"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_style = "open-street-map"
-        self.last_df: Optional[pd.DataFrame] = None
-        self.last_efforts: Optional[List[Tuple[int, int, float]]] = None
-        self.last_sprints: Optional[List[Dict[str, Any]]] = None
-        self.last_ftp: Optional[float] = None
-        self.last_weight: Optional[float] = None
         self.init_ui()
         self.html_path: Optional[str] = None
         
     def init_ui(self):
-        """Inizializza UI della tab planimetria"""
+        """Inizializza UI della tab stream"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(15)
         
         # Top bar
         top_bar = QHBoxLayout()
-        self.status_label = QLabel("Vista planimetrica - Pronto")
+        self.status_label = QLabel("Vista stream - Pronto")
         top_bar.addWidget(self.status_label)
-
-        self.style_selector = QComboBox()
-        style_options = [
-            ("OpenStreetMap (Default)", "open-street-map"),
-            ("Carto Positron (Strade chiare)", "carto-positron"),
-        ]
-        for label, value in style_options:
-            self.style_selector.addItem(label, userData=value)
-        self.style_selector.setCurrentIndex(0)
-        self.style_selector.currentIndexChanged.connect(self.on_style_changed)
-        top_bar.addWidget(self.style_selector)
         top_bar.addStretch()
         
         self.btn_browser = QPushButton("Apri nel Browser")
@@ -72,7 +54,7 @@ class PlanimetriaTab(QWidget):
         
         layout.addLayout(top_bar)
         
-        # Web view per la mappa
+        # Web view per il grafico
         self.web_view = QWebEngineView()
         self.web_view.setStyleSheet("background: #0f172a; border-radius: 8px;")
         # Configura settings per caricare Mapbox/tile da pagine HTML locali
@@ -87,7 +69,7 @@ class PlanimetriaTab(QWidget):
         
         self.table_efforts = QTableWidget()
         self.table_efforts.setColumnCount(5)
-        self.table_efforts.setHorizontalHeaderLabels(["Inizio", "Durata", "Watt", "W/kg", "Dist (km)"])
+        self.table_efforts.setHorizontalHeaderLabels(["Inizio", "Durata", "Watt", "W/kg", "kJ"])
         self.table_efforts.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table_efforts.verticalHeader().setVisible(False)
         
@@ -110,83 +92,38 @@ class PlanimetriaTab(QWidget):
         
         layout.addLayout(tables_container, stretch=1)
         
-    def update_analysis(self, df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
+    def update_analysis(self, df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
                        sprints: List[Dict[str, Any]], ftp: float, weight: float,
                        params_str: str):
         """Aggiorna la visualizzazione con i nuovi dati analizzati"""
         try:
-            # Verifica presenza coordinate GPS
-            if 'position_lat' not in df.columns or 'position_long' not in df.columns:
-                self.status_label.setText("❌ Coordinate GPS non disponibili")
-                QMessageBox.warning(self, "Attenzione",
-                    "File FIT non contiene coordinate GPS.\nUsa la tab 'Stream' per tracce senza GPS.")
-                return
-
-            # Cache ultimi dati per permettere cambio mappa senza ricalcolo
-            self.last_df = df
-            self.last_efforts = efforts
-            self.last_sprints = sprints
-            self.last_ftp = ftp
-            self.last_weight = weight
-
-            self.render_map()
-
-            # Popola tabelle
-            self.populate_tables(df, efforts, sprints, ftp, weight)
-
-            logger.info("Mappa planimetrica generata con successo")
-
-        except Exception as e:
-            logger.error(f"Errore generazione mappa: {e}", exc_info=True)
-            self.status_label.setText("❌ Errore generazione mappa")
-            QMessageBox.critical(self, "Errore", f"Errore generazione mappa: {str(e)}")
-
-    def render_map(self):
-        """Renderizza la mappa usando i dati in cache e lo stile selezionato."""
-        if self.last_df is None or self.last_efforts is None or self.last_sprints is None:
-            self.status_label.setText("Carica un FIT per visualizzare la mappa")
-            return
-
-        try:
-            from .exporter_PPLAN import plot_planimetria_html
-
-            logger.info("Generazione mappa planimetrica con stile %s...", self.current_style)
-            self.status_label.setText("⏳ Generazione mappa...")
-
-            html = plot_planimetria_html(
-                self.last_df,
-                self.last_efforts,
-                self.last_sprints,
-                self.last_ftp,
-                self.last_weight,
-                map_style=self.current_style,
-            )
-
+            from .stream_exporter import plot_stream_html
+            
+            logger.info("Generazione grafico stream...")
+            self.status_label.setText("⏳ Generazione grafico...")
+            
+            # Genera HTML con grafico potenza vs tempo
+            html = plot_stream_html(df, efforts, sprints, ftp, weight)
+            
+            # Salva e visualizza
             temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.html', encoding='utf-8')
             temp_file.write(html)
             temp_file.close()
             self.html_path = temp_file.name
             self.web_view.setUrl(QUrl.fromLocalFile(temp_file.name))
-
+            
             self.btn_browser.setEnabled(True)
-            self.status_label.setText(
-                f"✅ Mappa generata: {len(self.last_efforts)} efforts + {len(self.last_sprints)} sprints"
-            )
-
+            self.status_label.setText(f"✅ Grafico stream generato: {len(efforts)} efforts + {len(sprints)} sprints")
+            
+            # Popola tabelle
+            self.populate_tables(df, efforts, sprints, ftp, weight)
+            
+            logger.info("Grafico stream generato con successo")
+            
         except Exception as e:
-            logger.error(f"Errore generazione mappa: {e}", exc_info=True)
-            self.status_label.setText("❌ Errore generazione mappa")
-            QMessageBox.critical(self, "Errore", f"Errore generazione mappa: {str(e)}")
-
-    def on_style_changed(self, idx: int):
-        """Cambia lo stile della mappa senza ricalcolare gli effort."""
-        style_value = self.style_selector.currentData()
-        if style_value:
-            self.current_style = style_value
-            if self.last_df is not None:
-                self.render_map()
-            else:
-                self.status_label.setText("Seleziona un FIT per vedere la mappa")
+            logger.error(f"Errore generazione grafico stream: {e}", exc_info=True)
+            self.status_label.setText("❌ Errore generazione grafico")
+            QMessageBox.critical(self, "Errore", f"Errore generazione grafico: {str(e)}")
     
     def populate_tables(self, df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
                        sprints: List[Dict[str, Any]], ftp: float, weight: float):
@@ -194,24 +131,30 @@ class PlanimetriaTab(QWidget):
         try:
             power = df["power"].values
             time_sec = df["time_sec"].values
-            dist = df["distance"].values
             hr = df["heartrate"].values
             
             # Tabella Efforts
             self.table_efforts.setRowCount(len(efforts))
             for i, (s, e, avg) in enumerate(efforts):
                 seg_time = time_sec[s:e]
-                seg_dist = dist[s:e]
+                seg_power = power[s:e]
                 
                 duration = int(seg_time[-1] - seg_time[0] + 1)
-                dist_tot = (seg_dist[-1] - seg_dist[0]) / 1000  # km
                 w_kg = avg / weight if weight > 0 else 0
+                
+                # Calcola energia (kJ)
+                energy_j = 0
+                for j in range(s, min(e-1, len(time_sec)-1)):
+                    dt = time_sec[j+1] - time_sec[j]
+                    if dt > 0 and dt < 30:
+                        energy_j += power[j] * dt
+                energy_kj = energy_j / 1000
                 
                 self.table_efforts.setItem(i, 0, QTableWidgetItem(format_time_hhmmss(seg_time[0])))
                 self.table_efforts.setItem(i, 1, QTableWidgetItem(f"{duration}s"))
                 self.table_efforts.setItem(i, 2, QTableWidgetItem(f"{avg:.0f}"))
                 self.table_efforts.setItem(i, 3, QTableWidgetItem(f"{w_kg:.2f}"))
-                self.table_efforts.setItem(i, 4, QTableWidgetItem(f"{dist_tot:.2f}"))
+                self.table_efforts.setItem(i, 4, QTableWidgetItem(f"{energy_kj:.1f}"))
             
             # Tabella Sprints
             self.table_sprints.setRowCount(len(sprints))
@@ -228,15 +171,15 @@ class PlanimetriaTab(QWidget):
                 self.table_sprints.setItem(i, 2, QTableWidgetItem(f"{sprint['avg']:.0f}"))
                 self.table_sprints.setItem(i, 3, QTableWidgetItem(f"{int(max_hr)}"))
             
-            logger.info(f"Tabelle planimetria populate: {len(efforts)} efforts, {len(sprints)} sprints")
+            logger.info(f"Tabelle stream populate: {len(efforts)} efforts, {len(sprints)} sprints")
         except Exception as e:
-            logger.error(f"Errore popolazione tabelle planimetria: {e}", exc_info=True)
+            logger.error(f"Errore popolazione tabelle indoor: {e}", exc_info=True)
     
     def open_in_browser(self):
-        """Apre la mappa nel browser predefinito"""
+        """Apre il grafico nel browser predefinito"""
         if self.html_path:
             webbrowser.open("file://" + self.html_path)
-            self.status_label.setText("📂 Mappa aperta nel browser")
-            logger.info("Mappa aperta nel browser")
+            self.status_label.setText("📂 Grafico aperto nel browser")
+            logger.info("Grafico indoor aperto nel browser")
         else:
-            self.status_label.setText("❌ Nessuna mappa disponibile")
+            self.status_label.setText("❌ Nessun grafico disponibile")

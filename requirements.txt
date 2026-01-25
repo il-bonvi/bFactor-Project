@@ -8,3 +8,4 @@ fitparse
 xhtml2pdf
 requests
 sqlalchemy
+python-dotenv
