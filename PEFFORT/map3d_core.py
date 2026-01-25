@@ -199,9 +199,9 @@ def calculate_effort_parameters(s: int, e: int, avg: float,
     kj_over_cp = joules_over_cp_cumulative[s] / 1000 if s < len(joules_over_cp_cumulative) else 0
     kj_kg = (kj / weight) if weight > 0 else 0
     kj_kg_over_cp = (kj_over_cp / weight) if weight > 0 else 0
-    hours_seg = duration / 3600
-    kj_h_kg = (kj_kg / hours_seg) if hours_seg > 0 else 0
-    kj_h_kg_over_cp = (kj_kg_over_cp / hours_seg) if hours_seg > 0 else 0
+    hours = time_sec[s] / 3600 if time_sec[s] > 0 else 0
+    kj_h_kg = (kj_kg / hours) if hours > 0 else 0
+    kj_h_kg_over_cp = (kj_kg_over_cp / hours) if hours > 0 else 0
     
     # VAM teorico (solo se salita significativa)
     gradient_factor = 2 + (avg_grade / 10) if avg_grade > 0 else 2
