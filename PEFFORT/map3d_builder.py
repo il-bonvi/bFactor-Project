@@ -29,11 +29,16 @@ from .map3d_renderer import generate_3d_map_html as render_html
 
 from .peffort_engine import get_zone_color
 
-# Import config - usando sys.path per gestire correttamente il path relativo
-import sys
+# Import config
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import MAPTILER_KEY, MAPBOX_TOKEN
+import sys
+
+# Add parent directory to path if not already present to support direct module execution
+_parent_path = str(Path(__file__).parent.parent)
+if _parent_path not in sys.path:
+    sys.path.append(_parent_path)
+
+from config import get_maptiler_key, get_mapbox_token
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +151,7 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
             efforts_data_json=efforts_data_json,
             elevation_data_json=elevation_graph_data,
             geojson_str=geojson_str,
-            maptiler_key=MAPTILER_KEY,
+            maptiler_key=get_maptiler_key(),
             center_lat=center_lat,
             center_lon=center_lon,
             zoom=zoom,
