@@ -144,35 +144,58 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         avg_power = power.mean() if len(power) > 0 else 0
         distance_km = (df['distance'].values[-1] - df['distance'].values[0]) / 1000 if 'distance' in df.columns else 0
         
+        # Prepara dati per il grafico altimetrico totale
+        alt_values = df_valid['altitude'].values if 'altitude' in df_valid.columns else np.zeros(len(df_valid))
+        dist_km_values = df_valid['distance_km'].values if 'distance_km' in df_valid.columns else np.zeros(len(df_valid))
+        alt_total = alt_values.tolist()
+        dist_total = dist_km_values.tolist()
+        
         # Prepara dati efforts per JavaScript (adatta indice in base ai punti validi)
         efforts_list: List[Dict[str, Any]] = []
         coords = geojson_data['features'][0]['geometry']['coordinates']
-        for s, e, avg in efforts[:10]:
-            # trova primo indice valido >= s
-            pos_start = bisect.bisect_left(orig_indices, s)
-            pos_end = bisect.bisect_left(orig_indices, e)
-            if pos_start >= len(orig_indices):
-                pos_start = len(orig_indices) - 1
-            if pos_start < 0:
-                pos_start = 0
-            if pos_end >= len(coords):
-                pos_end = len(coords) - 1
+        
+        for s, e, avg in efforts:  # Prendi TUTTI gli effort, non solo i primi 10
+            # Trovi il primo indice filtrato che è >= s
+            pos_start = 0
+            for idx_f, idx_orig in enumerate(orig_indices):
+                if idx_orig >= s:
+                    pos_start = idx_f
+                    break
+            
+            # Trovi il primo indice filtrato che è >= e
+            pos_end = len(orig_indices) - 1
+            for idx_f, idx_orig in enumerate(orig_indices):
+                if idx_orig >= e:
+                    pos_end = idx_f
+                    break
+            
+            # Sicurezza: assicurati che start < end
             if pos_end < pos_start:
                 pos_end = pos_start + 1
+            
+            # Assicurati di non andare oltre i bounds
+            if pos_end >= len(coords):
+                pos_end = len(coords) - 1
             
             zone_color = get_zone_color(avg, ftp)
             # Estrai segmento di coordinate per questo effort
             segment_coords = coords[pos_start:pos_end+1]
+            segment_alt = alt_values[pos_start:pos_end+1].tolist() if pos_end < len(alt_values) else []
+            segment_dist = dist_km_values[pos_start:pos_end+1].tolist() if pos_end < len(dist_km_values) else []
             
-            efforts_list.append({
-                'pos': int(pos_start), 
-                'start': int(pos_start),
-                'end': int(pos_end),
-                'avg': float(avg),
-                'color': zone_color,
-                'segment': segment_coords
-            })
+            if len(segment_coords) > 0:  # Solo se il segmento ha dati
+                efforts_list.append({
+                    'pos': int(pos_start), 
+                    'start': int(pos_start),
+                    'end': int(pos_end),
+                    'avg': float(avg),
+                    'color': zone_color,
+                    'segment': segment_coords,
+                    'altitude': segment_alt,
+                    'distance': segment_dist
+                })
         efforts_data = json.dumps(efforts_list)
+        elevation_graph_data = json.dumps({'distance': dist_total, 'altitude': alt_total, 'efforts': efforts_list})
         
         html = f"""<!DOCTYPE html>
 <html>
@@ -182,27 +205,27 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
     <script src='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js'></script>
     <link href='https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css' rel='stylesheet' />
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; }}
-        #map {{ position: absolute; top: 0; bottom: 0; width: 100%; height: 100%; }}
+        #map {{ position: absolute; top: 0; bottom: 320px; width: 100%; height: calc(100% - 320px); }}
+        #elevation-chart {{ position: absolute; bottom: 0; width: 100%; height: 300px; background: rgba(15,23,42,.95); border-top: 1px solid rgba(255,255,255,.2); }}
         .info-panel {{ position: absolute; top: 20px; left: 20px; background: rgba(15,23,42,.95); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); font-size: 14px; max-width: 280px; z-index: 10; box-shadow: 0 4px 20px rgba(0,0,0,.4); }}
         .info-panel h3 {{ color: #60a5fa; margin-bottom: 12px; font-size: 16px; }}
         .info-row {{ display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.1); }}
         .info-row:last-child {{ border-bottom: none; }}
         .info-label {{ color: #9ca3af; font-weight: 500; }}
         .info-value {{ color: #fbbf24; font-weight: 600; }}
-        .controls {{ position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; }}
+        .controls {{ position: absolute; bottom: 320px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10; }}
         .control-btn {{ background: #1e40af; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .3s ease; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
         .control-btn:hover {{ background: #1e3a8a; box-shadow: 0 4px 12px rgba(0,0,0,.4); }}
         #styleSelect {{ background: #1e40af; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
-        .legend {{ position: absolute; bottom: 20px; right: 20px; background: rgba(15,23,42,.95); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); font-size: 12px; z-index: 10; }}
-        .legend-item {{ display: flex; align-items: center; margin: 6px 0; }}
-        .legend-color {{ width: 20px; height: 3px; margin-right: 8px; border-radius: 2px; }}
     </style>
 </head>
 <body>
     <div id='map'></div>
+    <div id='elevation-chart'></div>
 
     <div class='info-panel'>
         <h3>📊 Traccia 3D</h3>
@@ -253,8 +276,11 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
 
         const tracceGeoJSON = {geojson_str};
         console.log('Traccia GeoJSON caricata:', tracceGeoJSON);
+        const elevationData = JSON.parse('{elevation_graph_data}');
+        console.log('Elevation data:', elevationData);
         
         let activeEffortLayer = null;
+        let activeEffortIdx = null;
 
         function removeActiveEffortLayer() {{
             if (activeEffortLayer && map.getLayer(activeEffortLayer)) {{
@@ -264,6 +290,119 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                 map.removeSource(activeEffortLayer);
             }}
             activeEffortLayer = null;
+        }}
+
+        function drawElevationChart(effort, idx) {{
+            const distance = effort.distance;
+            const altitude = effort.altitude;
+            
+            const trace = {{
+                x: distance,
+                y: altitude,
+                fill: 'tozeroy',
+                type: 'scatter',
+                name: `Effort #${{idx + 1}}`,
+                line: {{ color: effort.color, width: 2 }},
+                fillcolor: effort.color.replace('#', 'rgba(') + ', 0.3)'
+            }};
+            
+            const layout = {{
+                title: {{
+                    text: `Profilo Altimetrico - Effort #${{idx + 1}} | Potenza: ${{effort.avg.toFixed(0)}}W`,
+                    font: {{ color: '#fff', size: 14 }}
+                }},
+                xaxis: {{
+                    title: 'Distanza (km)',
+                    color: '#9ca3af',
+                    gridcolor: 'rgba(255,255,255,0.1)'
+                }},
+                yaxis: {{
+                    title: 'Altitudine (m)',
+                    color: '#9ca3af',
+                    gridcolor: 'rgba(255,255,255,0.1)'
+                }},
+                plot_bgcolor: 'rgba(15,23,42,0)',
+                paper_bgcolor: 'rgba(15,23,42,.95)',
+                font: {{ family: 'Segoe UI', color: '#9ca3af' }},
+                margin: {{ l: 50, r: 20, t: 50, b: 40 }},
+                hovermode: false
+            }};
+            
+            const config = {{ responsive: true, displayModeBar: false }};
+            Plotly.newPlot('elevation-chart', [trace], layout, config);
+        }}
+
+        function drawFullElevationChart() {{
+            // Traccia base altimetria con fill
+            const baseTrace = {{
+                x: elevationData.distance,
+                y: elevationData.altitude,
+                fill: 'tozeroy',
+                type: 'scatter',
+                name: 'Altitudine',
+                line: {{ color: '#9ca3af', width: 1 }},
+                fillcolor: 'rgba(156,163,175,0.3)',
+                hoverinfo: 'skip'
+            }};
+            
+            // Tracce effort sovrapposte
+            const traces = [baseTrace];
+            elevationData.efforts.forEach((effort, idx) => {{
+                const effortTrace = {{
+                    x: effort.distance,
+                    y: effort.altitude,
+                    type: 'scatter',
+                    name: `Effort #${{idx + 1}}`,
+                    line: {{ color: effort.color, width: 2 }},
+                    mode: 'lines',
+                    hoverinfo: 'skip',
+                    opacity: 0.7,
+                    marker: {{ opacity: 0 }}
+                }};
+                traces.push(effortTrace);
+            }});
+            
+            const layout = {{
+                title: {{
+                    text: 'Profilo Altimetrico Completo',
+                    font: {{ color: '#fff', size: 14 }}
+                }},
+                xaxis: {{
+                    title: 'Distanza (km)',
+                    color: '#9ca3af',
+                    gridcolor: 'rgba(255,255,255,0.1)'
+                }},
+                yaxis: {{
+                    title: 'Altitudine (m)',
+                    color: '#9ca3af',
+                    gridcolor: 'rgba(255,255,255,0.1)'
+                }},
+                plot_bgcolor: 'rgba(15,23,42,0)',
+                paper_bgcolor: 'rgba(15,23,42,.95)',
+                font: {{ family: 'Segoe UI', color: '#9ca3af' }},
+                margin: {{ l: 50, r: 20, t: 50, b: 40 }},
+                hovermode: false,
+                showlegend: false
+            }};
+            
+            const config = {{ responsive: true, displayModeBar: false }};
+            Plotly.newPlot('elevation-chart', traces, layout, config);
+        }}
+
+        function highlightEffortInChart(idx) {{
+            // Modifica l'opacità delle tracce: quella selezionata a 1, altre a 0.3
+            const update = {{
+                opacity: elevationData.efforts.map((_, i) => i === idx ? 1 : 0.3)
+            }};
+            Plotly.restyle('elevation-chart', update, elevationData.efforts.map((_, i) => i + 1));
+        }}
+
+        function resetChartHighlight() {{
+            // Torna all'opacità originale di tutte le tracce
+            const update = {{
+                opacity: elevationData.efforts.map(() => 0.7)
+            }};
+            Plotly.restyle('elevation-chart', update, elevationData.efforts.map((_, i) => i + 1));
         }}
 
         function addTerrain() {{
@@ -350,6 +489,7 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                 // Aggiungi event listener per mostrare/nascondere il segmento
                 marker.getPopup().on('open', () => {{
                     removeActiveEffortLayer();
+                    activeEffortIdx = idx;
                     const layerId = `effort-${{idx}}`;
                     activeEffortLayer = layerId;
                     
@@ -372,14 +512,22 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                             'line-opacity': 0.8
                         }}
                     }});
-                    console.log(`Segment ${{idx}} displayed`);
+                    
+                    // Evidenzia la traccia nel grafico altimetrico
+                    highlightEffortInChart(idx);
+                    console.log(`Segment ${{idx}} displayed and highlighted`);
                 }});
                 
                 marker.getPopup().on('close', () => {{
                     removeActiveEffortLayer();
+                    activeEffortIdx = null;
+                    resetChartHighlight();
                 }});
             }});
             console.log('Markers added');
+            
+            // Disegna il grafico altimetrico totale
+            drawFullElevationChart();
         }});
 
         map.on('error', (e) => {{ console.error('Map error:', e); }})
