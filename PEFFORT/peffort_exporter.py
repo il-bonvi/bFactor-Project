@@ -140,7 +140,8 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
 
                 best_5s_watt = 0
                 if len(seg_power) >= 5:
-                    best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
+                    # Calcolo best 5s con range corretto
+                    best_5s = max([seg_power[i:i+5].mean() for i in range(max(1, len(seg_power)-4))])
                     best_5s_watt = int(best_5s)
 
                 # Calcolo kJ (con logging per gap > 30s)
@@ -204,7 +205,12 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
                 
                 max_speed = 0
                 if len(seg_dist_km) > 1:
-                    diffs = [(seg_dist_km[k+1]-seg_dist_km[k])/(time_sec[start+k+1]-time_sec[start+k])*3600 for k in range(len(seg_dist_km)-1)]
+                    diffs = []
+                    for k in range(len(seg_dist_km)-1):
+                        dt = time_sec[start+k+1] - time_sec[start+k]
+                        if dt > 0:  # Evita divisione per zero
+                            speed_kmh = (seg_dist_km[k+1] - seg_dist_km[k]) / dt * 3600
+                            diffs.append(speed_kmh)
                     max_speed = max(diffs) if diffs else 0
 
                 html_content += f"""
@@ -397,7 +403,8 @@ def plot_unified_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
         if avg_grade >= 4.5:
             diff_vam = abs(vam_teorico - vam)
             arrow = '⬆️' if vam_teorico - vam > 0 else ('⬇️' if vam_teorico - vam < 0 else '')
-            wkg_teoric = vam / (gradient_factor * 100)
+            # Evita divisione per zero nel calcolo W/kg teorico
+            wkg_teoric = vam / (gradient_factor * 100) if gradient_factor > 0 else 0
             diff_wkg = avg_power_per_kg - wkg_teoric
             perc_err = (diff_wkg / avg_power_per_kg * 100) if avg_power_per_kg != 0 else 0
             sign = '+' if perc_err > 0 else ('-' if perc_err < 0 else '')

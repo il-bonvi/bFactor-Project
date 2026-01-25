@@ -33,6 +33,9 @@ EXTEND_LOW_PERCENT = 80
 SPRINT_WINDOW_SECONDS = 5
 MIN_SPRINT_POWER = 500
 
+# GPS conversion constant
+SEMICIRCLES_TO_DEGREES = 180 / (2**31 - 1)
+
 ZONE_COLORS = [
     (106, "#1f77b4", "CP–just above"),
     (116, "#3eb33e", "Threshold+"),
@@ -41,6 +44,7 @@ ZONE_COLORS = [
     (999, "#7315ca", "Supra-MAP"),
 ]
 ZONE_DEFAULT = ("Anaerobico", "#6B3C3C73")
+
 
 
 # =====================
@@ -160,8 +164,8 @@ def parse_fit(file_path: str) -> pd.DataFrame:
     # Converti semicircles in gradi se necessario
     if df["position_lat"].notna().any() and df["position_lat"].abs().max() > 180:
         # Corretto: semicircles to degrees = value * (180 / (2^31 - 1))
-        df["position_lat"] = df["position_lat"] * (180 / (2**31 - 1))
-        df["position_long"] = df["position_long"] * (180 / (2**31 - 1))
+        df["position_lat"] = df["position_lat"] * SEMICIRCLES_TO_DEGREES
+        df["position_long"] = df["position_long"] * SEMICIRCLES_TO_DEGREES
         logger.info("Coordinate GPS convertite da semicircles a gradi")
     
     df["time_sec"] = (df["time"] - df["time"].iloc[0]).dt.total_seconds()
@@ -395,7 +399,7 @@ def merge_extend(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
     return efforts
 
 
-def split_included(df, efforts):
+def split_included(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]) -> List[Tuple[int, int, float]]:
     """Split se un effort è contenuto in un altro
     
     Args:
@@ -406,13 +410,13 @@ def split_included(df, efforts):
         Lista di efforts modificati dopo split
     """
     power = df["power"].values
-    efforts = sorted(efforts, key=lambda x: x[0])  # Create sorted copy
+    sorted_efforts = sorted(efforts, key=lambda x: x[0])  # Create sorted copy
     changed = True
     
     while changed:
         changed = False
         # Create a copy to avoid mutation during iteration
-        current_efforts = list(efforts)
+        current_efforts = list(sorted_efforts)
         
         for i in range(len(current_efforts)):
             if changed:  # Exit early if we've made a change
@@ -444,14 +448,14 @@ def split_included(df, efforts):
                         if len(pow2) > 0:
                             new_efforts.append((e2, e, pow2.mean()))
                     
-                    # Rimuovi i e j, aggiungi nuovi (modifica efforts, non current_efforts)
-                    efforts = [eff for k, eff in enumerate(current_efforts) if k != i and k != j]
-                    efforts.extend(new_efforts)
-                    efforts.sort(key=lambda x: x[0])
+                    # Rimuovi i e j, aggiungi nuovi
+                    sorted_efforts = [eff for k, eff in enumerate(current_efforts) if k != i and k != j]
+                    sorted_efforts.extend(new_efforts)
+                    sorted_efforts.sort(key=lambda x: x[0])
                     changed = True
                     break
     
-    return efforts
+    return sorted_efforts
 
 
 # =====================
