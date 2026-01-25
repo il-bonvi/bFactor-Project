@@ -149,14 +149,14 @@ def calculate_effort_parameters(s: int, e: int, avg: float,
     seg_hr = hr_all[s:e]
     seg_cadence = cadence_all[s:e]
     seg_grade = grade_all[s:e]
-    seg_distance = distance_all[s:e]
+    seg_dist_km = dist_km_values[s:e] if s < len(dist_km_values) and e <= len(dist_km_values) else dist_km_values
     
     # Durata ed elevazione
     duration = int(seg_time[-1] - seg_time[0] + 1) if len(seg_time) > 0 else 0
     elevation_gain = seg_alt_arr[-1] - seg_alt_arr[0] if len(seg_alt_arr) > 0 else 0
     
-    # Distanza
-    dist_tot_m = seg_distance[-1] - seg_distance[0] if len(seg_distance) > 0 else 0
+    # Distanza (in km)
+    dist_tot = seg_dist_km[-1] - seg_dist_km[0] if len(seg_dist_km) > 0 else 0
     
     # Potenza relativa
     w_kg = avg / weight if weight > 0 else 0
@@ -180,8 +180,8 @@ def calculate_effort_parameters(s: int, e: int, avg: float,
     avg_cadence = valid_cadence.mean() if len(valid_cadence) > 0 else 0
     
     # Velocità e pendenza
-    avg_speed = dist_tot_m / (duration / 3600) if duration > 0 and dist_tot_m > 0 else 0
-    avg_grade = (elevation_gain / dist_tot_m * 100) if dist_tot_m > 0 else 0
+    avg_speed = dist_tot / (duration / 3600) if duration > 0 and dist_tot > 0 else 0
+    avg_grade = (elevation_gain / (dist_tot * 1000) * 100) if dist_tot > 0 else 0
     max_grade = seg_grade.max() if len(seg_grade) > 0 else 0
     
     # 1ª metà vs 2ª metà
