@@ -417,7 +417,7 @@ class OmniPDAnalyzer(QWidget):
         try:
             seconds = convert_time_minutes_to_seconds(text)
             self.sec_out.setText(f"= {seconds} s")
-        except:
+        except (ValueError, TypeError):
             self.sec_out.setText("= 0 s")
 
     def import_file(self):
