@@ -237,14 +237,16 @@ def trim_segment(power: np.ndarray, start: int, end: int, trim_win: int, trim_pc
             break
 
         # Trim inizio (con boundary check)
-        if start + trim_win < end and start + trim_win <= len(power):
+        # Verifica che la finestra non vada oltre l'array
+        if start + trim_win < end:
             head_avg = power[start:start+trim_win].mean()
             if head_avg < avg * trim_pct / 100:
                 start += trim_win
                 changed = True
 
         # Trim fine (con boundary check)
-        if end - trim_win > start and end <= len(power):
+        # Verifica che la finestra non vada oltre l'array
+        if end - trim_win > start:
             tail_avg = power[end-trim_win:end].mean()
             if tail_avg < avg * trim_pct / 100:
                 end -= trim_win

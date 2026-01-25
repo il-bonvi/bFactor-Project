@@ -140,8 +140,9 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
 
                 best_5s_watt = 0
                 if len(seg_power) >= 5:
-                    # Calcolo best 5s con range corretto
-                    best_5s = max([seg_power[i:i+5].mean() for i in range(max(1, len(seg_power)-4))])
+                    # Calcolo best 5s - trova la massima media mobile di 5 secondi
+                    # range(len(seg_power)-4) dà tutti gli indici di partenza validi
+                    best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
                     best_5s_watt = int(best_5s)
 
                 # Calcolo kJ (con logging per gap > 30s)
