@@ -29,16 +29,17 @@ from .map3d_renderer import generate_3d_map_html as render_html
 
 from .peffort_engine import get_zone_color
 
-# Import config
-from pathlib import Path
-import sys
-
-# Add parent directory to path if not already present to support direct module execution
-_parent_path = str(Path(__file__).parent.parent)
-if _parent_path not in sys.path:
-    sys.path.append(_parent_path)
-
-from config import get_maptiler_key, get_mapbox_token
+# Import config using relative import
+try:
+    from ..config import get_maptiler_key, get_mapbox_token
+except ImportError:
+    # Fallback for direct execution: add parent to path
+    import sys
+    from pathlib import Path
+    _parent_path = str(Path(__file__).parent.parent)
+    if _parent_path not in sys.path:
+        sys.path.append(_parent_path)
+    from config import get_maptiler_key, get_mapbox_token
 
 logger = logging.getLogger(__name__)
 

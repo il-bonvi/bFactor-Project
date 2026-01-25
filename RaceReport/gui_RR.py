@@ -1,8 +1,9 @@
 """Race Report GUI - Main application window"""
 
-import sys
 import os
 import subprocess
+import sys
+
 import pandas as pd
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
