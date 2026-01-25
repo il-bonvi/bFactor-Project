@@ -136,7 +136,7 @@ class BTeamStorage:
                 print(f"[bTeam] Errore check schema: {e}")
                 try:
                     self.db_path.unlink()
-                except:
+                except (OSError, PermissionError):
                     pass
 
         # Initialize SQLAlchemy engine and session

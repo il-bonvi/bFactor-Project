@@ -430,7 +430,7 @@ def build_table_figure(df, raw_df, args, logo_file, bg_color):
                                     return int(parts[0])*60 + int(parts[1])
                                 elif len(parts) == 3:
                                     return int(parts[0])*3600 + int(parts[1])*60 + int(parts[2])
-                            except:
+                            except (ValueError, IndexError):
                                 return None
                             return None
                         col_vals_sec = np.array([to_sec(v) for v in df_table[colname].values], dtype=float)

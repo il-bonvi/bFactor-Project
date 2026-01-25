@@ -33,7 +33,7 @@ from .plotting_metapow import (
     create_overlaid_comparison_plot, create_overlaid_comparison_dialog, create_vt_analysis_dialog
 )
 from .vtcomparison_metapow import show_vt_comparison_dialog
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 
 class ImportProfileDialog(QDialog):
@@ -347,19 +347,19 @@ class MetaboPowerGUI(QMainWindow):
                     try:
                         self.vt1 = float(self.vt1)
                         metadata_str += f"VT1={self.vt1:.0f}W "
-                    except:
+                    except (ValueError, TypeError):
                         self.vt1 = None
                 if self.vt2 is not None:
                     try:
                         self.vt2 = float(self.vt2)
                         metadata_str += f"VT2={self.vt2:.0f}W "
-                    except:
+                    except (ValueError, TypeError):
                         self.vt2 = None
                 if self.map is not None:
                     try:
                         self.map = float(self.map)
                         metadata_str += f"MAP={self.map:.0f}W"
-                    except:
+                    except (ValueError, TypeError):
                         self.map = None
             
             self.metadata_text.setText(metadata_str)

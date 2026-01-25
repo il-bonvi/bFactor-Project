@@ -1,7 +1,9 @@
 """Race Report GUI - Main application window"""
 
-import sys
 import os
+import subprocess
+import sys
+
 import pandas as pd
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -442,9 +444,9 @@ class RaceReportGUI(QMainWindow):
                     if platform.system() == "Windows":
                         os.startfile(pdf_path)
                     elif platform.system() == "Darwin":
-                        os.system(f"open '{pdf_path}'")
+                        subprocess.run(['open', pdf_path], check=False)
                     else:
-                        os.system(f"xdg-open '{pdf_path}'")
+                        subprocess.run(['xdg-open', pdf_path], check=False)
                 except Exception as e:
                     print(f"Impossibile aprire automaticamente il PDF: {e}")
             
