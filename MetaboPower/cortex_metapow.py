@@ -174,7 +174,7 @@ class CortexMetabolitParser:
                 try:
                     pd.to_numeric(col_w_by_idx, errors='raise')
                     col_w = df.columns[22]
-                except:
+                except (ValueError, TypeError):
                     pass
             
             if not col_w:

@@ -15,9 +15,9 @@ def valid_rpe(val):
         try:
             v = float(s)
             return 1 <= int(round(v)) <= 10
-        except:
+        except (ValueError, TypeError):
             return False
-    except:
+    except (ValueError, TypeError, AttributeError):
         return False
 
 
@@ -34,9 +34,9 @@ def valid_feel(val):
         try:
             v = float(s)
             return 1 <= int(round(v)) <= 4
-        except:
+        except (ValueError, TypeError):
             return False
-    except:
+    except (ValueError, TypeError, AttributeError):
         return False
 
 

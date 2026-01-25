@@ -56,7 +56,7 @@ def normalize_decimals(df: pd.DataFrame) -> pd.DataFrame:
                 # Se >50% numerico, converti la colonna
                 if converted.notna().sum() / len(df) > 0.5:
                     df[col] = converted
-            except:
+            except (ValueError, TypeError, AttributeError):
                 pass  # Rimane stringa se conversione fallisce
     
     return df

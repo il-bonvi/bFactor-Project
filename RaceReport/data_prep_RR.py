@@ -62,9 +62,9 @@ def read_and_prepare(csv_dir):
             try:
                 v = float(s)
                 return 1 <= int(round(v)) <= 10
-            except:
+            except (ValueError, TypeError):
                 return False
-        except:
+        except (ValueError, TypeError, AttributeError):
             return False
 
     def valid_feel(val):
@@ -79,9 +79,9 @@ def read_and_prepare(csv_dir):
             try:
                 v = float(s)
                 return 1 <= int(round(v)) <= 4
-            except:
+            except (ValueError, TypeError):
                 return False
-        except:
+        except (ValueError, TypeError, AttributeError):
             return False
 
     if 'RPE' in df.columns:
@@ -113,7 +113,7 @@ def read_and_prepare(csv_dir):
                     if re.search(r"\([A-Z]{1,5}\)$", sname):
                         return sname
                     return f"{sname} ({sinit})" if sname != '' else f"({sinit})"
-                except:
+                except (ValueError, TypeError, AttributeError):
                     return name
             df['Name'] = [append_initials(n, i) for n, i in zip(df['Name'], df['AthleteInit'])]
 
@@ -181,7 +181,7 @@ def read_and_prepare(csv_dir):
                     return f"{h}:{m:02d}:{s:02d}"
                 else:
                     return f"{m}:{s:02d}"
-            except:
+            except (ValueError, TypeError):
                 return ''
         df['Time Above CP'] = df['Time Above CP'].apply(format_seconds)
     if 'Avg Above CP' in df.columns:

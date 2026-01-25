@@ -19,7 +19,7 @@ def append_initials_to_name(name, initials):
         if re.search(r"\([A-Z]{1,5}\)$", sname):
             return sname
         return f"{sname} ({sinit})" if sname != '' else f"({sinit})"
-    except:
+    except (ValueError, TypeError, AttributeError):
         return name
 
 
@@ -58,7 +58,7 @@ def format_seconds(s):
             return f"{h}:{m:02d}:{s:02d}"
         else:
             return f"{m}:{s:02d}"
-    except:
+    except (ValueError, TypeError):
         return ''
 
 
