@@ -154,6 +154,29 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         efforts_list: List[Dict[str, Any]] = []
         coords = geojson_data['features'][0]['geometry']['coordinates']
         
+        # Estrai dati dal DataFrame originale per i calcoli
+        time_sec = df['time_sec'].values if 'time_sec' in df.columns else np.arange(len(df))
+        power_all = df['power'].values if 'power' in df.columns else np.zeros(len(df))
+        hr_all = df['heartrate'].values if 'heartrate' in df.columns else np.zeros(len(df))
+        cadence_all = df['cadence'].values if 'cadence' in df.columns else np.zeros(len(df))
+        grade_all = df['grade'].values if 'grade' in df.columns else np.zeros(len(df))
+        distance_all = df['distance'].values if 'distance' in df.columns else np.zeros(len(df))
+        
+        # Calcolo Joules cumulative
+        joules_cumulative = np.zeros(len(power_all))
+        joules_over_cp_cumulative = np.zeros(len(power_all))
+        for i in range(1, len(power_all)):
+            dt = time_sec[i] - time_sec[i-1]
+            if dt > 0 and dt < 30:
+                joules_cumulative[i] = joules_cumulative[i-1] + power_all[i] * dt
+                if power_all[i] >= ftp:
+                    joules_over_cp_cumulative[i] = joules_over_cp_cumulative[i-1] + power_all[i] * dt
+                else:
+                    joules_over_cp_cumulative[i] = joules_over_cp_cumulative[i-1]
+            else:
+                joules_cumulative[i] = joules_cumulative[i-1]
+                joules_over_cp_cumulative[i] = joules_over_cp_cumulative[i-1]
+        
         for s, e, avg in efforts:  # Prendi TUTTI gli effort, non solo i primi 10
             # Trovi il primo indice filtrato che è >= s
             pos_start = 0
@@ -183,6 +206,69 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
             segment_alt = alt_values[pos_start:pos_end+1].tolist() if pos_end < len(alt_values) else []
             segment_dist = dist_km_values[pos_start:pos_end+1].tolist() if pos_end < len(dist_km_values) else []
             
+            # Calcola parametri aggiuntivi per l'effort
+            seg_power = power_all[s:e]
+            seg_time = time_sec[s:e]
+            seg_alt_arr = alt_values[s:e] if s < len(alt_values) and e <= len(alt_values) else alt_values[pos_start:pos_end+1]
+            seg_hr = hr_all[s:e]
+            seg_cadence = cadence_all[s:e]
+            seg_grade = grade_all[s:e]
+            seg_distance = distance_all[s:e]
+            
+            duration = int(seg_time[-1] - seg_time[0] + 1) if len(seg_time) > 0 else 0
+            dist_tot = segment_dist[-1] - segment_dist[0] if len(segment_dist) > 1 else 0
+            dist_tot_m = seg_distance[-1] - seg_distance[0] if len(seg_distance) > 0 else 0
+            elevation_gain = seg_alt_arr[-1] - seg_alt_arr[0] if len(seg_alt_arr) > 0 else 0
+            
+            w_kg = avg / weight if weight > 0 else 0
+            
+            # Best 5s
+            best_5s_watt = 0
+            if len(seg_power) >= 5:
+                best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
+                best_5s_watt = int(best_5s)
+            
+            # Heart rate
+            valid_hr = seg_hr[seg_hr > 0]
+            avg_hr = valid_hr.mean() if len(valid_hr) > 0 else 0
+            max_hr = valid_hr.max() if len(valid_hr) > 0 else 0
+            
+            # Cadence
+            valid_cadence = seg_cadence[seg_cadence > 0]
+            avg_cadence = valid_cadence.mean() if len(valid_cadence) > 0 else 0
+            
+            # Speed e grade
+            avg_speed = dist_tot / (duration / 3600) if duration > 0 else 0
+            avg_grade = (elevation_gain / dist_tot_m * 100) if dist_tot_m > 0 else 0
+            max_grade = seg_grade.max() if len(seg_grade) > 0 else 0
+            
+            # VAM
+            vam = elevation_gain / (duration / 3600) if duration > 0 else 0
+            
+            # 1ª metà vs 2ª metà
+            half = len(seg_power) // 2
+            avg_watts_first = seg_power[:half].mean() if half > 0 else 0
+            avg_watts_second = seg_power[half:].mean() if len(seg_power) > half else 0
+            watts_ratio = avg_watts_first / avg_watts_second if avg_watts_second > 0 else 0
+            
+            # Best 5s W/kg
+            best_5s_watt_kg = 0
+            if len(seg_power) >= 5 and weight > 0:
+                best_5s_watt_kg = best_5s_watt / weight
+            
+            # kJ calculations
+            kj = joules_cumulative[e-1] / 1000 if e-1 < len(joules_cumulative) else 0
+            kj_over_cp = joules_over_cp_cumulative[e-1] / 1000 if e-1 < len(joules_over_cp_cumulative) else 0
+            kj_kg = (kj / weight) if weight > 0 else 0
+            kj_kg_over_cp = (kj_over_cp / weight) if weight > 0 else 0
+            hours_seg = duration / 3600
+            kj_h_kg = (kj / hours_seg / weight) if hours_seg > 0 and weight > 0 else 0
+            kj_h_kg_over_cp = (kj_over_cp / hours_seg / weight) if hours_seg > 0 and weight > 0 else 0
+            
+            # VAM teorico (solo se salita significativa)
+            gradient_factor = 2 + (avg_grade / 10) if avg_grade > 0 else 2
+            vam_teorico = (avg / weight) * (gradient_factor * 100) if weight > 0 else 0
+            
             if len(segment_coords) > 0:  # Solo se il segmento ha dati
                 efforts_list.append({
                     'pos': int(pos_start), 
@@ -192,7 +278,30 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                     'color': zone_color,
                     'segment': segment_coords,
                     'altitude': segment_alt,
-                    'distance': segment_dist
+                    'distance': segment_dist,
+                    'duration': int(duration),
+                    'distance_km': float(dist_tot),
+                    'elevation': float(elevation_gain),
+                    'w_kg': float(w_kg),
+                    'best_5s': int(best_5s_watt),
+                    'best_5s_watt_kg': float(best_5s_watt_kg),
+                    'avg_hr': float(avg_hr),
+                    'max_hr': float(max_hr),
+                    'avg_cadence': float(avg_cadence),
+                    'avg_speed': float(avg_speed),
+                    'avg_grade': float(avg_grade),
+                    'max_grade': float(max_grade),
+                    'vam': float(vam),
+                    'watts_first': float(avg_watts_first),
+                    'watts_second': float(avg_watts_second),
+                    'watts_ratio': float(watts_ratio),
+                    'kj': float(kj),
+                    'kj_over_cp': float(kj_over_cp),
+                    'kj_kg': float(kj_kg),
+                    'kj_kg_over_cp': float(kj_kg_over_cp),
+                    'kj_h_kg': float(kj_h_kg),
+                    'kj_h_kg_over_cp': float(kj_h_kg_over_cp),
+                    'vam_teorico': float(vam_teorico)
                 })
         efforts_data = json.dumps(efforts_list)
         elevation_graph_data = json.dumps({'distance': dist_total, 'altitude': alt_total, 'efforts': efforts_list})
@@ -570,12 +679,21 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                 
                 const marker = new maplibregl.Marker({{ element: el }})
                     .setLngLat([coordStart[0], coordStart[1]])
-                    .setPopup(new maplibregl.Popup({{ anchor: 'bottom', offset: [0, -15] }}).setHTML(`
-                        <div style="padding: 8px; min-width: 160px;">
-                            <b style="color: #60a5fa;">Effort #${{idx + 1}}</b><br>
-                            <span style="color: #fbbf24;">Potenza: ${{effort.avg.toFixed(0)}} W</span><br>
-                            <span style="color: ${{effort.color}};">●●●●● ${{effort.avg.toFixed(0)}} W</span><br>
-                            <span style="font-size: 11px; color: #9ca3af;">Visualizza traccia</span>
+                    .setPopup(new maplibregl.Popup({{ anchor: 'bottom', offset: [0, -15], maxWidth: 450 }}).setHTML(`
+                        <div style="padding: 10px; min-width: 340px; font-size: 11px; color: #9ca3af; background: rgba(15,23,42,.95);">
+                            <b style="color: #60a5fa; font-size: 13px;">Effort #${{idx + 1}}</b><br>
+                            <div style="border-top: 1px solid rgba(255,255,255,.2); margin: 6px 0; padding-top: 6px;">
+                                <div style="color: #fbbf24;"><b>⚡ ${{effort.avg.toFixed(0)}} W</b> | 5″🔺${{effort.best_5s}} W | 🌀 ${{effort.avg_cadence.toFixed(0)}} rpm</div>
+                                <div>⏱️ ${{effort.duration}}s | ⚖️ ${{effort.w_kg.toFixed(2)}} W/kg | 5″🔺${{effort.best_5s_watt_kg.toFixed(2)}} W/kg</div>
+                                <div>🔀 ${{effort.watts_first.toFixed(0)}} W | ${{effort.watts_second.toFixed(0)}} W | ${{effort.watts_ratio.toFixed(2)}}</div>
+                                <div>🚴‍♂️ ${{effort.avg_speed.toFixed(1)}} km/h | 📏 ${{effort.distance_km.toFixed(2)}} km</div>
+                                <div>∅ ${{effort.avg_grade.toFixed(1)}}% | 🔺${{effort.max_grade.toFixed(1)}}% | 🏔️ ${{effort.elevation.toFixed(0)}} m</div>
+                                <div>💨 ${{effort.vam.toFixed(0)}} m/h ${{effort.avg_grade >= 4.5 ? ` | 🧮 ${{effort.vam_teorico.toFixed(0)}} m/h` : ''}}</div>
+                                <div>🔋 ${{effort.kj.toFixed(0)}} kJ | ${{effort.kj_over_cp.toFixed(0)}} kJ > CP</div>
+                                <div>💪 ${{effort.kj_kg.toFixed(1)}} kJ/kg | ${{effort.kj_kg_over_cp.toFixed(1)}} kJ/kg > CP</div>
+                                <div>🔥 ${{effort.kj_h_kg.toFixed(1)}} kJ/h/kg | ${{effort.kj_h_kg_over_cp.toFixed(1)}} kJ/h/kg > CP</div>
+                                ${{effort.max_hr > 0 ? `<div>❤️ ∅${{effort.avg_hr.toFixed(0)}} bpm | 🔺${{effort.max_hr.toFixed(0)}} bpm</div>` : ''}}
+                            </div>
                         </div>
                     `))
                     .addTo(map);
