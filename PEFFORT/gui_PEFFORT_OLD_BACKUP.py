@@ -16,8 +16,7 @@ import logging
 from PySide6.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QLabel,
     QFileDialog, QLineEdit, QHBoxLayout, QMessageBox, QFrame,
-    QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
-    QTabWidget
+    QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView, QComboBox
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import QUrl, QBuffer, QIODevice, QRect
@@ -29,8 +28,6 @@ from pathlib import Path
 from .engine_PEFFORT import format_time_hhmmss
 from .exporter_PEFFORT import create_pdf_report, plot_unified_html
 from .config_PEFFORT import AnalysisConfig, AthleteProfile, EffortConfig, SprintConfig
-from .gui_planimetria import PlanimetriaTab
-from .gui_indoor import IndoorTab
 
 # Import shared styles
 from shared.styles import TEMI, get_style
@@ -157,44 +154,10 @@ class EffortAnalyzer(QWidget):
 
         main_layout.addWidget(sidebar)
 
-        # --- AREA CONTENUTO CON TABS ---
+        # --- AREA CONTENUTO ---
         content_area = QVBoxLayout()
         content_area.setContentsMargins(15, 15, 15, 15)
         content_area.setSpacing(15)
-
-        # Tab Widget
-        self.tabs = QTabWidget()
-        self.tabs.setObjectName("MainTabs")
-        
-        # Tab 1: Altimetria (esistente)
-        self.tab_altimetria = self._create_altimetria_tab()
-        self.tabs.addTab(self.tab_altimetria, "📈 Altimetria")
-        
-        # Tab 2: Planimetria
-        self.tab_planimetria = PlanimetriaTab(self)
-        self.tabs.addTab(self.tab_planimetria, "🗺️ Planimetria")
-        
-        # Tab 3: Indoor
-        self.tab_indoor = IndoorTab(self)
-        self.tabs.addTab(self.tab_indoor, "🏠 Indoor")
-        
-        content_area.addWidget(self.tabs)
-        main_layout.addLayout(content_area)
-
-        self.file_path: Optional[str] = None
-        self.html_path: Optional[str] = None
-        self.current_df = None
-        self.current_efforts = None
-        self.current_sprints = None
-        self.current_params_str = ""
-        self.current_config: Optional[AnalysisConfig] = None
-    
-    def _create_altimetria_tab(self) -> QWidget:
-        """Crea la tab altimetria (codice originale)"""
-        tab = QWidget()
-        tab_layout = QVBoxLayout(tab)
-        tab_layout.setContentsMargins(0, 0, 0, 0)
-        tab_layout.setSpacing(15)
 
         top_bar = QHBoxLayout()
         self.status_label = QLabel("Pronto per l'analisi")
@@ -252,63 +215,6 @@ class EffortAnalyzer(QWidget):
         self.current_sprints = None
         self.current_params_str = ""
         self.current_config: Optional[AnalysisConfig] = None
-
-    def _create_altimetria_tab(self) -> QWidget:
-        """Crea la tab altimetria (codice originale)"""
-        tab = QWidget()
-        tab_layout = QVBoxLayout(tab)
-        tab_layout.setContentsMargins(0, 0, 0, 0)
-        tab_layout.setSpacing(15)
-
-        top_bar = QHBoxLayout()
-        self.status_label = QLabel("Pronto per l'analisi")
-        top_bar.addWidget(self.status_label)
-        top_bar.addStretch()
-        
-        self.btn_browser = QPushButton("Apri nel Browser")
-        self.btn_browser.clicked.connect(self.open_in_browser)
-        self.btn_browser.setEnabled(False)
-        top_bar.addWidget(self.btn_browser)
-        
-        self.btn_pdf = QPushButton("Esporta PDF Report")
-        self.btn_pdf.clicked.connect(self.export_pdf_action)
-        self.btn_pdf.setEnabled(False)
-        top_bar.addWidget(self.btn_pdf)
-        tab_layout.addLayout(top_bar)
-
-        self.web_view = QWebEngineView()
-        self.web_view.setStyleSheet("background: #0f172a; border-radius: 8px;")
-        tab_layout.addWidget(self.web_view, stretch=3)
-
-        tables_container = QHBoxLayout()
-        tables_container.setSpacing(15)
-
-        self.table_efforts = QTableWidget()
-        self.table_efforts.setColumnCount(5)
-        self.table_efforts.setHorizontalHeaderLabels(["Inizio", "Durata", "Watt", "W/kg", "VAM"])
-        self.table_efforts.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table_efforts.verticalHeader().setVisible(False)
-        
-        self.table_sprints = QTableWidget()
-        self.table_sprints.setColumnCount(4)
-        self.table_sprints.setHorizontalHeaderLabels(["Inizio", "Picco (W)", "Watt Medi", "HR Max"])
-        self.table_sprints.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table_sprints.verticalHeader().setVisible(False)
-
-        eff_layout = QVBoxLayout()
-        eff_layout.addWidget(QLabel("SUSTAINED EFFORTS", objectName="SectionTitle"))
-        eff_layout.addWidget(self.table_efforts)
-        
-        spr_layout = QVBoxLayout()
-        spr_layout.addWidget(QLabel("SPRINT & SURGES", objectName="SectionTitle"))
-        spr_layout.addWidget(self.table_sprints)
-
-        tables_container.addLayout(eff_layout, stretch=2)
-        tables_container.addLayout(spr_layout, stretch=1)
-        
-        tab_layout.addLayout(tables_container, stretch=1)
-        
-        return tab
 
     def parse_numeric_input(self, field_name: str, text: str, min_val: float = 0, 
                            max_val: Optional[float] = None) -> float:
@@ -505,12 +411,8 @@ class EffortAnalyzer(QWidget):
             self.status_label.setText(f"✅ {len(efforts)} efforts + {len(sprints)} sprints")
             logger.info(f"Analisi completata: {len(efforts)} efforts, {len(sprints)} sprints")
             
-            # Popola tabelle tab altimetria
+            # Popola tabelle
             self.populate_tables(df, efforts, sprints, ftp, weight)
-            
-            # Aggiorna anche le altre tabs
-            self.tab_planimetria.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
-            self.tab_indoor.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
             
         except Exception as e:
             self.show_error_dialog(f"Errore imprevisto: {str(e)}")
