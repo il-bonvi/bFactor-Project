@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import bisect
 from typing import List, Tuple, Dict, Any
+from .engine_PEFFORT import get_zone_color
 
 logger = logging.getLogger(__name__)
 
@@ -145,14 +146,32 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         
         # Prepara dati efforts per JavaScript (adatta indice in base ai punti validi)
         efforts_list: List[Dict[str, Any]] = []
+        coords = geojson_data['features'][0]['geometry']['coordinates']
         for s, e, avg in efforts[:10]:
             # trova primo indice valido >= s
-            pos = bisect.bisect_left(orig_indices, s)
-            if pos >= len(orig_indices):
-                pos = len(orig_indices) - 1
-            if pos < 0:
-                pos = 0
-            efforts_list.append({'pos': int(pos), 'avg': float(avg)})
+            pos_start = bisect.bisect_left(orig_indices, s)
+            pos_end = bisect.bisect_left(orig_indices, e)
+            if pos_start >= len(orig_indices):
+                pos_start = len(orig_indices) - 1
+            if pos_start < 0:
+                pos_start = 0
+            if pos_end >= len(coords):
+                pos_end = len(coords) - 1
+            if pos_end < pos_start:
+                pos_end = pos_start + 1
+            
+            zone_color = get_zone_color(avg, ftp)
+            # Estrai segmento di coordinate per questo effort
+            segment_coords = coords[pos_start:pos_end+1]
+            
+            efforts_list.append({
+                'pos': int(pos_start), 
+                'start': int(pos_start),
+                'end': int(pos_end),
+                'avg': float(avg),
+                'color': zone_color,
+                'segment': segment_coords
+            })
         efforts_data = json.dumps(efforts_list)
         
         html = f"""<!DOCTYPE html>
@@ -234,6 +253,18 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
 
         const tracceGeoJSON = {geojson_str};
         console.log('Traccia GeoJSON caricata:', tracceGeoJSON);
+        
+        let activeEffortLayer = null;
+
+        function removeActiveEffortLayer() {{
+            if (activeEffortLayer && map.getLayer(activeEffortLayer)) {{
+                map.removeLayer(activeEffortLayer);
+            }}
+            if (activeEffortLayer && map.getSource(activeEffortLayer)) {{
+                map.removeSource(activeEffortLayer);
+            }}
+            activeEffortLayer = null;
+        }}
 
         function addTerrain() {{
             try {{
@@ -271,7 +302,7 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
             addTerrain();
             addOverlays();
 
-            // Aggiungi marcatori per gli efforts (pos indicizza coordinates filtrate)
+            // Aggiungi marcatori per gli efforts con SVG custom colorati per zona
             const efforts = JSON.parse('{efforts_data}');
             console.log('Efforts loaded:', efforts);
 
@@ -286,10 +317,67 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                     console.warn(`No coordinate at pos index ${{effort.pos}}`);
                     return;
                 }}
-                const marker = new maplibregl.Marker({{ color: '#60a5fa' }})
+                
+                // Crea elemento SVG custom per il marker colorato
+                const el = document.createElement('div');
+                el.style.width = '30px';
+                el.style.height = '30px';
+                el.style.borderRadius = '50%';
+                el.style.backgroundColor = effort.color;
+                el.style.border = '3px solid white';
+                el.style.boxShadow = `0 2px 8px rgba(0,0,0,.6), 0 0 0 2px ${{effort.color}}`;
+                el.style.cursor = 'pointer';
+                el.style.display = 'flex';
+                el.style.alignItems = 'center';
+                el.style.justifyContent = 'center';
+                el.style.fontSize = '14px';
+                el.style.fontWeight = 'bold';
+                el.style.color = 'white';
+                el.innerHTML = (idx + 1);
+                
+                const marker = new maplibregl.Marker({{ element: el }})
                     .setLngLat([coordStart[0], coordStart[1]])
-                    .setPopup(new maplibregl.Popup().setHTML(`<b>Effort #${{idx + 1}}</b><br>${{effort.avg.toFixed(0)}} W`))
+                    .setPopup(new maplibregl.Popup({{ anchor: 'bottom', offset: [0, -15] }}).setHTML(`
+                        <div style="padding: 8px; min-width: 160px;">
+                            <b style="color: #60a5fa;">Effort #${{idx + 1}}</b><br>
+                            <span style="color: #fbbf24;">Potenza: ${{effort.avg.toFixed(0)}} W</span><br>
+                            <span style="color: ${{effort.color}};">●●●●● ${{effort.avg.toFixed(0)}} W</span><br>
+                            <span style="font-size: 11px; color: #9ca3af;">Visualizza traccia</span>
+                        </div>
+                    `))
                     .addTo(map);
+                
+                // Aggiungi event listener per mostrare/nascondere il segmento
+                marker.getPopup().on('open', () => {{
+                    removeActiveEffortLayer();
+                    const layerId = `effort-${{idx}}`;
+                    activeEffortLayer = layerId;
+                    
+                    const segmentGeoJSON = {{
+                        'type': 'Feature',
+                        'geometry': {{
+                            'type': 'LineString',
+                            'coordinates': effort.segment
+                        }}
+                    }};
+                    
+                    map.addSource(layerId, {{ 'type': 'geojson', 'data': segmentGeoJSON }});
+                    map.addLayer({{
+                        'id': layerId,
+                        'type': 'line',
+                        'source': layerId,
+                        'paint': {{
+                            'line-color': effort.color,
+                            'line-width': 6,
+                            'line-opacity': 0.8
+                        }}
+                    }});
+                    console.log(`Segment ${{idx}} displayed`);
+                }});
+                
+                marker.getPopup().on('close', () => {{
+                    removeActiveEffortLayer();
+                }});
             }});
             console.log('Markers added');
         }});
