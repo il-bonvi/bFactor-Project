@@ -107,16 +107,9 @@ class RaceReportGUI(QMainWindow):
         self.dati_tab = create_dati_tab(self)
         self.main_tabs.addTab(self.dati_tab, "DATI")
         
-        # Create LAYOUT tab
+        # Create LAYOUT tab (contains layout controls + preview tabs on the right)
         self.layout_tab = create_layout_tab(self)
         self.main_tabs.addTab(self.layout_tab, "LAYOUT")
-        
-        # Create PREVIEW tab (with sub-tabs)
-        self.preview_tab = QWidget()
-        preview_layout = QVBoxLayout(self.preview_tab)
-        self.preview_tabs = QTabWidget()
-        preview_layout.addWidget(self.preview_tabs)
-        self.main_tabs.addTab(self.preview_tab, "PREVIEW")
         
         # Export section
         export_layout = QHBoxLayout()

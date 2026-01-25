@@ -4,7 +4,7 @@ import pandas as pd
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QScrollArea, QTableWidget, QGroupBox, QFormLayout, QDoubleSpinBox,
-    QColorDialog
+    QColorDialog, QTabWidget
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
@@ -40,14 +40,18 @@ def create_dati_tab(parent):
 
 
 def create_layout_tab(parent):
-    """Create LAYOUT tab with controls for customization"""
+    """Create LAYOUT tab with controls for customization and live preview"""
     widget = QWidget()
-    main_layout = QVBoxLayout(widget)
+    main_layout = QHBoxLayout(widget)
+    
+    # LEFT SIDE: Controls (in scroll area)
+    left_widget = QWidget()
+    left_layout = QVBoxLayout(left_widget)
     
     scroll = QScrollArea()
     scroll.setWidgetResizable(True)
     scroll_widget = QWidget()
-    layout = QVBoxLayout(scroll_widget)
+    scroll_layout = QVBoxLayout(scroll_widget)
     
     # Background color
     bg_group = QGroupBox("Colore Sfondo")
@@ -61,7 +65,7 @@ def create_layout_tab(parent):
     bg_layout.addWidget(parent.bg_color_btn)
     bg_layout.addStretch()
     bg_group.setLayout(bg_layout)
-    layout.addWidget(bg_group)
+    scroll_layout.addWidget(bg_group)
     
     # Logo Page 1 settings
     logo1_group = QGroupBox("Logo Pagina 1 (Tabella)")
@@ -89,7 +93,7 @@ def create_layout_tab(parent):
     logo1_layout.addRow("Margine alto:", parent.logo_margin_top_spin)
     
     logo1_group.setLayout(logo1_layout)
-    layout.addWidget(logo1_group)
+    scroll_layout.addWidget(logo1_group)
     
     # Logo Other Pages settings
     logo2_group = QGroupBox("Logo Altre Pagine (Grafici)")
@@ -117,16 +121,22 @@ def create_layout_tab(parent):
     logo2_layout.addRow("Margine alto:", parent.other_logo_margin_top_spin)
     
     logo2_group.setLayout(logo2_layout)
-    layout.addWidget(logo2_group)
+    scroll_layout.addWidget(logo2_group)
     
-    layout.addStretch()
+    scroll_layout.addStretch()
     scroll.setWidget(scroll_widget)
-    main_layout.addWidget(scroll)
+    left_layout.addWidget(scroll)
     
-    # Apply button
+    # Apply button at bottom
     btn_apply_layout = QPushButton("Applica Modifiche Layout")
     btn_apply_layout.clicked.connect(parent.apply_layout_changes)
-    main_layout.addWidget(btn_apply_layout)
+    left_layout.addWidget(btn_apply_layout)
+    
+    main_layout.addWidget(left_widget, stretch=1)  #frazione di utilizzo spazio 1/5 se 1 e 5 sotto
+    
+    # RIGHT SIDE: Preview tabs
+    parent.preview_tabs = QTabWidget()
+    main_layout.addWidget(parent.preview_tabs, stretch=5)  #frazione di utilizzo spazio (il 5 di sopra)
     
     return widget
 

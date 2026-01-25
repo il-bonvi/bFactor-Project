@@ -67,7 +67,7 @@ class TagEditorDialog(QDialog):
         for tag, description in self.RACE_TYPE_TAGS.items():
             checkbox = QCheckBox(f"{tag} - {description}")
             checkbox.setChecked(tag in self.existing_tags)
-            checkbox.stateChanged.connect(lambda state, t=tag: self.on_tag_changed(t, state))
+            checkbox.stateChanged.connect(self._make_tag_handler(tag))
             self.tag_checkboxes[tag] = checkbox
             race_type_layout.addWidget(checkbox)
         race_type_group.setLayout(race_type_layout)
@@ -79,7 +79,7 @@ class TagEditorDialog(QDialog):
         for tag, description in self.INFO_TAGS.items():
             checkbox = QCheckBox(f"{tag} - {description}")
             checkbox.setChecked(tag in self.existing_tags)
-            checkbox.stateChanged.connect(lambda state, t=tag: self.on_tag_changed(t, state))
+            checkbox.stateChanged.connect(self._make_tag_handler(tag))
             self.tag_checkboxes[tag] = checkbox
             info_layout.addWidget(checkbox)
         info_group.setLayout(info_layout)
@@ -98,6 +98,12 @@ class TagEditorDialog(QDialog):
         layout.addLayout(btn_layout)
         
         self.setLayout(layout)
+    
+    def _make_tag_handler(self, tag):
+        """Create a handler function for a specific tag"""
+        def handler(state):
+            self.on_tag_changed(tag, state)
+        return handler
     
     def on_tag_changed(self, tag, state):
         """Update selected tags"""

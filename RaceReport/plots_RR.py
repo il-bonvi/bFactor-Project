@@ -4,16 +4,23 @@ import matplotlib.pyplot as plt
 
 
 def create_distance_figure(df, bg_color, logo_file):
-    if 'Distance' not in df.columns or 'Date' not in df.columns:
+    # Support both original and renamed column names
+    dist_col = 'Distance' if 'Distance' in df.columns else ('Dist (km)' if 'Dist (km)' in df.columns else None)
+    climb_col = 'Climbing' if 'Climbing' in df.columns else ('El (m)' if 'El (m)' in df.columns else None)
+    time_col = 'Moving Time' if 'Moving Time' in df.columns else ('Time' if 'Time' in df.columns else None)
+    date_col = 'Date' if 'Date' in df.columns else None
+    
+    if not dist_col or not date_col:
         return None
+    
     plot_df = df.copy().reset_index(drop=True)
-    plot_df['Distance (km)'] = plot_df['Distance']
-    if 'Climbing' in plot_df.columns:
-        plot_df['Climbing (m)'] = plot_df['Climbing']
+    plot_df['Distance (km)'] = plot_df[dist_col]
+    if climb_col:
+        plot_df['Climbing (m)'] = plot_df[climb_col]
     plot_df = plot_df.iloc[::-1].reset_index(drop=True)
     finished_mask = (plot_df['75%'] != 'DNF') if '75%' in plot_df.columns else pd.Series([True]*len(plot_df))
     plot_df_finished = plot_df[finished_mask]
-    y_labels = list(plot_df['Date'])
+    y_labels = list(plot_df[date_col])
     dnf_mask = (plot_df['75%'] == 'DNF') if '75%' in plot_df.columns else pd.Series([False]*len(plot_df))
     DIST_COLOR = '#4169e1'
     TIME_COLOR = '#b22222'
@@ -35,8 +42,8 @@ def create_distance_figure(df, bg_color, logo_file):
         except Exception:
             return 0
 
-    moving_hours = plot_df['Moving Time'].apply(time_to_hours) if 'Moving Time' in plot_df.columns else [0]*len(plot_df)
-    moving_labels = plot_df['Moving Time'] if 'Moving Time' in plot_df.columns else ['']*len(plot_df)
+    moving_hours = plot_df[time_col].apply(time_to_hours) if time_col and time_col in plot_df.columns else [0]*len(plot_df)
+    moving_labels = plot_df[time_col] if time_col and time_col in plot_df.columns else ['']*len(plot_df)
     bars1 = ax2.barh(range(len(plot_df)), plot_df['Distance (km)'], color=DIST_COLOR, height=0.4, label='Distanza (km)')
     for i, bar in enumerate(bars1):
         if dnf_mask.iloc[i]:
@@ -109,10 +116,12 @@ def create_distance_figure(df, bg_color, logo_file):
         ax3.axvline(mean_time, color=TIME_COLOR, linestyle='--', linewidth=0.5, alpha=0.85, zorder=10)
         y_min3, y_max3 = ax3.get_ylim(); y_text3_top = y_max3 + 0.08
         ax3.text(mean_time, y_text3_top, mean_time_str, color=TIME_COLOR, fontsize=6, ha='center', va='bottom', fontweight='bold', zorder=11)
-    if 'Name' in plot_df.columns:
+    # Support both 'Race' (renamed) and 'Name' (original) column names
+    name_col = 'Race' if 'Race' in plot_df.columns else 'Name'
+    if name_col in plot_df.columns:
         name_x = 1; font_kwargs = dict(fontsize=7, fontweight='bold', color='#222222', family='DejaVu Sans')
         dist_offset = 0.4; time_offset = 0.02
-        for i, (bar, name, dist, t_h) in enumerate(zip(bars1, plot_df['Name'], plot_df['Distance (km)'], moving_hours)):
+        for i, (bar, name, dist, t_h) in enumerate(zip(bars1, plot_df[name_col], plot_df['Distance (km)'], moving_hours)):
             name_str = str(name)
             tag75 = str(plot_df['75%'].iloc[i]).strip() if '75%' in plot_df.columns else ''
             if tag75 == '+':
@@ -134,18 +143,21 @@ def create_distance_figure(df, bg_color, logo_file):
 def create_power_hr_figure(df, bg_color, logo_file):
     avg_power_col = None; np_col = None
     for col in df.columns:
-        if col.lower() in ['avg power', 'average power', 'potenza media']:
+        col_lower = col.lower()
+        if col_lower in ['avg power', 'average power', 'potenza media', 'avgp (w)']:
             avg_power_col = col
-        if col.lower() in ['normalized power', 'np', 'potenza normalizzata', 'norm power']:
+        if col_lower in ['normalized power', 'np', 'potenza normalizzata', 'norm power', 'np (w)']:
             np_col = col
-    if not (avg_power_col and np_col) or 'Date' not in df.columns:
+    
+    date_col = 'Date' if 'Date' in df.columns else None
+    if not (avg_power_col and np_col and date_col):
         return None
 
     power_df = df.copy().reset_index(drop=True)
     power_df = power_df.iloc[::-1].reset_index(drop=True)
     finished_mask = (power_df['75%'] != 'DNF') if '75%' in power_df.columns else pd.Series([True]*len(power_df))
     power_df_finished = power_df[finished_mask]
-    y_labels = list(power_df['Date'])
+    y_labels = list(power_df[date_col])
     dnf_mask = (power_df['75%'] == 'DNF') if '75%' in power_df.columns else pd.Series([False]*len(power_df))
     AVG_COLOR = '#ff8c00'; NP_COLOR = '#4682b4'; AVGHR_COLOR = "#000000"; MAXHR_COLOR = "#ec0c0c"
     fig3, axp = plt.subplots(figsize=(9, max(4, len(power_df)*0.45)))
@@ -220,8 +232,10 @@ def create_power_hr_figure(df, bg_color, logo_file):
 
     font_kwargs = dict(fontsize=7, fontweight='bold', color='#222222', family='DejaVu Sans')
     avg_offset = 0.4; np_offset = 0.4; name_x = min_x + 1
+    # Support both 'Race' (renamed) and 'Name' (original) column names
+    name_col = 'Race' if 'Race' in power_df.columns else 'Name'
     for i, (bar_avg, bar_np, name, avg, npw) in enumerate(zip(
-        bars_avg, bars_np, power_df['Name'], power_df[avg_power_col], power_df[np_col]
+        bars_avg, bars_np, power_df[name_col], power_df[avg_power_col], power_df[np_col]
     )):
         name_str = str(name)
         tag75 = str(power_df['75%'].iloc[i]).strip() if '75%' in power_df.columns else ''
@@ -247,15 +261,18 @@ def create_power_hr_figure(df, bg_color, logo_file):
 def create_work_figure(df, bg_color, logo_file):
     work_col = None; work_cp_col = None; kjhkg_col = None; kjhkgcp_col = None
     for col in df.columns:
-        if col.lower() in ['work', 'work (kj)']:
+        col_lower = col.lower()
+        if col_lower in ['work', 'work (kj)', 'kj']:
             work_col = col
-        if col.lower() in ['all work>cp', 'all work>cp (kj)']:
+        if col_lower in ['all work>cp', 'all work>cp (kj)', 'all kj > cp', 'all kj >cp']:
             work_cp_col = col
-        if col.lower() in ['kj/h/kg']:
+        if col_lower in ['kj/h/kg']:
             kjhkg_col = col
-        if col.lower() in ['kj/h/kg>cp']:
+        if col_lower in ['kj/h/kg>cp']:
             kjhkgcp_col = col
-    if not (work_col and work_cp_col and kjhkg_col and kjhkgcp_col) or 'Date' not in df.columns:
+    
+    date_col = 'Date' if 'Date' in df.columns else None
+    if not (work_col and work_cp_col and kjhkg_col and kjhkgcp_col and date_col):
         return None
 
     work_df = df.copy().reset_index(drop=True)
@@ -265,7 +282,7 @@ def create_work_figure(df, bg_color, logo_file):
     work_df = work_df[valid_mask].reset_index(drop=True)
     finished_mask = (work_df['75%'] != 'DNF') if '75%' in work_df.columns else pd.Series([True]*len(work_df))
     work_df_finished = work_df[finished_mask]
-    y_labels = list(work_df['Date'])
+    y_labels = list(work_df[date_col])
     dnf_mask = (work_df['75%'] == 'DNF') if '75%' in work_df.columns else pd.Series([False]*len(work_df))
     KJ_COLOR = "#1cda2c"; KJCP_COLOR = "#d81515"; KJHKG_COLOR = "#19c2b9"; KJHKGCP_COLOR = "#96258c"
     fig4, axw = plt.subplots(figsize=(9, max(4, len(work_df)*0.45)))
@@ -318,9 +335,11 @@ def create_work_figure(df, bg_color, logo_file):
 
     font_kwargs = dict(fontsize=7, fontweight='bold', color='#222222', family='DejaVu Sans')
     kj_offset = 1; kjcp_offset = 1; kjhkg_offset = 0.02; kjhkgcp_offset = 0.02; name_x = 10
+    # Support both 'Race' (renamed) and 'Name' (original) column names
+    name_col = 'Race' if 'Race' in work_df.columns else 'Name'
     for i, (bar_kj, bar_kjcp, bar_kjhkg, bar_kjhkgcp, name, kj, kjcp, kjhkg, kjhkgcp) in enumerate(zip(
             bars_kj, bars_kjcp, bars_kjhkg, bars_kjhkgcp,
-            work_df['Name'], work_df[work_col], work_df[work_cp_col], work_df[kjhkg_col], work_df[kjhkgcp_col])):
+            work_df[name_col], work_df[work_col], work_df[work_cp_col], work_df[kjhkg_col], work_df[kjhkgcp_col])):
         name_str = str(name)
         tag75 = str(work_df['75%'].iloc[i]).strip() if '75%' in work_df.columns else ''
         if tag75 == '+':

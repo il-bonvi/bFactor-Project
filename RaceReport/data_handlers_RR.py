@@ -96,6 +96,10 @@ def import_csv(gui_instance):
             gui_instance.df = validate_rpe_column(gui_instance.df)
             gui_instance.df = validate_feel_column(gui_instance.df)
             
+            # Also apply to raw_df for plotting
+            gui_instance.raw_df = validate_rpe_column(gui_instance.raw_df)
+            gui_instance.raw_df = validate_feel_column(gui_instance.raw_df)
+            
             # Process Name column (vectorized)
             if 'Name' in gui_instance.df.columns:
                 gui_instance.df['Name'] = gui_instance.df['Name'].apply(remove_emoji)
@@ -105,44 +109,94 @@ def import_csv(gui_instance):
                         axis=1
                     )
             
+            # Apply same processing to raw_df
+            if 'Name' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Name'] = gui_instance.raw_df['Name'].apply(remove_emoji)
+                if 'AthleteInit' in gui_instance.raw_df.columns:
+                    gui_instance.raw_df['Name'] = gui_instance.raw_df.apply(
+                        lambda row: append_initials_to_name(row['Name'], row['AthleteInit']),
+                        axis=1
+                    )
+            
             progress.set_value(45)
             
             # Get 75% status (vectorized where possible)
             gui_instance.df['75%'] = gui_instance.df.apply(get_75_status, axis=1)
+            gui_instance.raw_df['75%'] = gui_instance.raw_df.apply(get_75_status, axis=1)
             
-            # Numeric conversions (all vectorized)
+            # Numeric conversions (all vectorized) - apply to both df and raw_df
             if 'Distance' in gui_instance.df.columns:
                 gui_instance.df['Distance'] = (gui_instance.df['Distance'] / 1000).round(1)
+            if 'Distance' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Distance'] = (gui_instance.raw_df['Distance'] / 1000).round(1)
+                
             if 'Climbing' in gui_instance.df.columns:
                 gui_instance.df['Climbing'] = gui_instance.df['Climbing'].fillna(0).astype(int)
+            if 'Climbing' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Climbing'] = gui_instance.raw_df['Climbing'].fillna(0).astype(int)
+                
             if 'Moving Time' in gui_instance.df.columns:
                 gui_instance.df['Moving Time'] = gui_instance.df['Moving Time'].apply(normalize_moving_time)
+            if 'Moving Time' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Moving Time'] = gui_instance.raw_df['Moving Time'].apply(normalize_moving_time)
+                
             if 'Avg Speed' in gui_instance.df.columns:
                 gui_instance.df['Avg Speed'] = (gui_instance.df['Avg Speed'] * 3.6).round(1)
+            if 'Avg Speed' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Avg Speed'] = (gui_instance.raw_df['Avg Speed'] * 3.6).round(1)
+                
             if 'Intensity' in gui_instance.df.columns:
                 gui_instance.df = gui_instance.df.drop(columns=['Intensity'])
+            if 'Intensity' in gui_instance.raw_df.columns:
+                gui_instance.raw_df = gui_instance.raw_df.drop(columns=['Intensity'])
+                
             if 'Variability' in gui_instance.df.columns:
                 gui_instance.df = gui_instance.df.drop(columns=['Variability'])
+            if 'Variability' in gui_instance.raw_df.columns:
+                gui_instance.raw_df = gui_instance.raw_df.drop(columns=['Variability'])
+                
             if 'Work' in gui_instance.df.columns:
                 gui_instance.df['Work'] = (gui_instance.df['Work'] / 1000).round(0)
+            if 'Work' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Work'] = (gui_instance.raw_df['Work'] / 1000).round(0)
+                
             if 'Work >FTP' in gui_instance.df.columns:
                 gui_instance.df = gui_instance.df.rename(columns={'Work >FTP': 'Work >CP'})
                 gui_instance.df['Work >CP'] = (gui_instance.df['Work >CP'] / 1000).round(0)
+            if 'Work >FTP' in gui_instance.raw_df.columns:
+                gui_instance.raw_df = gui_instance.raw_df.rename(columns={'Work >FTP': 'Work >CP'})
+                gui_instance.raw_df['Work >CP'] = (gui_instance.raw_df['Work >CP'] / 1000).round(0)
+                
             if 'All Work>CP' in gui_instance.df.columns:
                 gui_instance.df['All Work>CP'] = gui_instance.df['All Work>CP'].round(0)
+            if 'All Work>CP' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['All Work>CP'] = gui_instance.raw_df['All Work>CP'].round(0)
+                
             if 'Time Above CP' in gui_instance.df.columns:
                 gui_instance.df['Time Above CP'] = gui_instance.df['Time Above CP'].apply(format_seconds)
+            if 'Time Above CP' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Time Above CP'] = gui_instance.raw_df['Time Above CP'].apply(format_seconds)
+                
             if 'Avg Above CP' in gui_instance.df.columns:
                 gui_instance.df['Avg Above CP'] = gui_instance.df['Avg Above CP'].round(0)
+            if 'Avg Above CP' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['Avg Above CP'] = gui_instance.raw_df['Avg Above CP'].round(0)
+                
             if 'kJ/h/kg' in gui_instance.df.columns:
                 gui_instance.df['kJ/h/kg'] = gui_instance.df['kJ/h/kg'].round(1)
+            if 'kJ/h/kg' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['kJ/h/kg'] = gui_instance.raw_df['kJ/h/kg'].round(1)
+                
             if 'kJ/h/kg>CP' in gui_instance.df.columns:
                 gui_instance.df['kJ/h/kg>CP'] = gui_instance.df['kJ/h/kg>CP'].round(1)
+            if 'kJ/h/kg>CP' in gui_instance.raw_df.columns:
+                gui_instance.raw_df['kJ/h/kg>CP'] = gui_instance.raw_df['kJ/h/kg>CP'].round(1)
             
             progress.set_value(60)
             
-            # Handle error flags
+            # Handle error flags for both dataframes
             gui_instance.df = handle_error_flags(gui_instance.df)
+            gui_instance.raw_df = handle_error_flags(gui_instance.raw_df)
             
             # Sort and format Date
             progress.set_label("Ordinamento dati...")
