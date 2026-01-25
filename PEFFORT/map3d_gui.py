@@ -143,7 +143,7 @@ class Map3DTab(QWidget):
         try:
             self.status_label.setText("⏳ Generazione mappa 3D...")
             
-            from .exporter_3DMAP import generate_3d_map_html
+            from .map3d_builder import generate_3d_map_html
             
             logger.info("Generazione mappa 3D...")
             

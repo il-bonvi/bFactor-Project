@@ -19,7 +19,7 @@ import plotly.io as pio
 import io
 from xhtml2pdf import pisa
 
-from .engine_PEFFORT import (
+from .peffort_engine import (
     format_time_hhmmss, format_time_mmss, get_zone_color
 )
 

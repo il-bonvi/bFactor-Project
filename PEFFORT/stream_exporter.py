@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from .engine_PEFFORT import format_time_hhmmss, format_time_mmss, get_zone_color
+from .peffort_engine import format_time_hhmmss, format_time_mmss, get_zone_color
 
 logger = logging.getLogger(__name__)
 

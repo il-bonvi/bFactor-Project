@@ -26,12 +26,12 @@ import webbrowser
 import base64
 from pathlib import Path
 
-from .engine_PEFFORT import format_time_hhmmss
-from .exporter_PEFFORT import create_pdf_report, plot_unified_html
-from .config_PEFFORT import AnalysisConfig, AthleteProfile, EffortConfig, SprintConfig
-from .gui_PPLAN import PlanimetriaTab
-from .gui_STREAM import StreamTab
-from .gui_3DMAP import Map3DTab
+from .peffort_engine import format_time_hhmmss
+from .peffort_exporter import create_pdf_report, plot_unified_html
+from .peffort_config import AnalysisConfig, AthleteProfile, EffortConfig, SprintConfig
+from .pplan_gui import PlanimetriaTab
+from .stream_gui import StreamTab
+from .map3d_gui import Map3DTab
 
 # Import shared styles
 from shared.styles import TEMI, get_style
@@ -303,7 +303,7 @@ class EffortAnalyzer(QWidget):
             return
         
         try:
-            from .engine_PEFFORT import parse_fit, create_efforts, merge_extend, split_included, detect_sprints
+            from .peffort_engine import parse_fit, create_efforts, merge_extend, split_included, detect_sprints
             
             self.status_label.setText("⏳ Analisi in corso...")
             QApplication.processEvents()

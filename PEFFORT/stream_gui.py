@@ -22,7 +22,7 @@ import tempfile
 import webbrowser
 import pandas as pd
 
-from .engine_PEFFORT import format_time_hhmmss
+from .peffort_engine import format_time_hhmmss
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class StreamTab(QWidget):
                        params_str: str):
         """Aggiorna la visualizzazione con i nuovi dati analizzati"""
         try:
-            from .exporter_STREAM import plot_stream_html
+            from .stream_exporter import plot_stream_html
             
             logger.info("Generazione grafico stream...")
             self.status_label.setText("⏳ Generazione grafico...")

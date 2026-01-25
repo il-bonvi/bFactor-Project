@@ -23,7 +23,7 @@ import tempfile
 import webbrowser
 import pandas as pd
 
-from .engine_PEFFORT import format_time_hhmmss
+from .peffort_engine import format_time_hhmmss
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ class PlanimetriaTab(QWidget):
             return
 
         try:
-            from .exporter_PPLAN import plot_planimetria_html
+            from .pplan_exporter import plot_planimetria_html
 
             logger.info("Generazione mappa planimetrica con stile %s...", self.current_style)
             self.status_label.setText("⏳ Generazione mappa...")

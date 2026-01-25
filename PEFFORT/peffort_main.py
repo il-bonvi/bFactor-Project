@@ -13,7 +13,7 @@ Nota: Questo file è opzionale. Per il launcher usa root/main.py
 import sys
 import logging
 from PySide6.QtWidgets import QApplication
-from .gui_PEFFORT import EffortAnalyzer
+from .peffort_gui import EffortAnalyzer
 
 # Setup logging
 logging.basicConfig(

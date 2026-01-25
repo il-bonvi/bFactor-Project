@@ -1,0 +1,156 @@
+# ==============================================================================
+# Copyright (c) 2026 Andrea Bonvicin - bFactor Project
+# PROPRIETARY LICENSE - TUTTI I DIRITTI RISERVATI
+# Sharing, distribution or reproduction is strictly prohibited.
+# La condivisione, distribuzione o riproduzione è severamente vietata.
+# ==============================================================================
+
+"""
+BUILDER 3D MAP - Main orchestrator for 3D map visualization
+
+Coordinates between data processing (map3d_core.py) and rendering (map3d_renderer.py).
+Responsibility: data validation, calculations preparation, HTML assembly.
+"""
+
+import json
+import logging
+import numpy as np
+import pandas as pd
+from typing import List, Tuple, Dict, Any
+
+# Import modules
+from .map3d_core import (
+    export_traccia_geojson,
+    validate_and_filter_coordinates,
+    calculate_zoom_level,
+    prepare_efforts_data
+)
+from .map3d_renderer import generate_3d_map_html as render_html
+
+from .peffort_engine import get_zone_color
+
+# Import config - usando sys.path per gestire correttamente il path relativo
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import MAPTILER_KEY, MAPBOX_TOKEN
+
+logger = logging.getLogger(__name__)
+
+
+def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
+                         ftp: float, weight: float) -> str:
+    """
+    Genera HTML interattivo per visualizzare traccia 3D con Mapbox GL JS.
+    
+    Orchestrates data processing from core_3DMAP and rendering from renderer_3DMAP.
+    
+    Args:
+        df: DataFrame con dati attività (lat, lon, alt, power, etc)
+        efforts: Lista efforts (start, end, avg_power)
+        ftp: Functional Threshold Power
+        weight: Peso atleta
+        
+    Returns:
+        String HTML completo per visualizzazione 3D
+    """
+    try:
+        logger.info("Generazione mappa 3D (orchestrator)...")
+        
+        # ===== STEP 1: Data Validation =====
+        # Filtra coordinate non valide (NaN, fuori range, 0,0)
+        lat_all = df['position_lat'].values
+        lon_all = df['position_long'].values
+        nan_mask = (~np.isnan(lat_all)) & (~np.isnan(lon_all))
+        range_mask = (np.abs(lat_all) <= 90) & (np.abs(lon_all) <= 180)
+        zero_mask = ~((np.abs(lat_all) < 1e-9) & (np.abs(lon_all) < 1e-9))
+        valid_mask = nan_mask & range_mask & zero_mask
+
+        df_valid = df.loc[valid_mask].copy()
+        logger.info(f"Dati geografici: {len(df_valid)} punti validi su {len(df)} totali")
+
+        # ===== STEP 2: Coordinate Extraction & GeoJSON =====
+        # Estrai traccia GeoJSON dal DF filtrato e mappatura indici originali
+        geojson_data, orig_indices = export_traccia_geojson(df_valid)
+        geojson_str = json.dumps(geojson_data)
+
+        # ===== STEP 3: Map Centering & Zoom =====
+        lat = df_valid['position_lat'].values
+        lon = df_valid['position_long'].values
+        
+        # Valida dati geografici
+        if len(lat) == 0 or len(lon) == 0:
+            raise ValueError("Nessun dato geografico valido disponibile")
+        
+        # Ensure we have arrays with proper shape
+        lat = np.atleast_1d(lat)
+        lon = np.atleast_1d(lon)
+        
+        center_lat = float(np.nanmean([float(np.nanmin(lat)), float(np.nanmax(lat))]))
+        center_lon = float(np.nanmean([float(np.nanmin(lon)), float(np.nanmax(lon))]))
+        
+        # Valida NaN
+        if np.isnan(center_lat) or np.isnan(center_lon):
+            raise ValueError(f"Coordinate non valide: lat={center_lat}, lon={center_lon}")
+        
+        # Calcola zoom basato sull'extent
+        zoom = calculate_zoom_level(lat, lon)
+        
+        # ===== STEP 4: Track Statistics =====
+        if 'altitude' in df.columns:
+            alt_min = df['altitude'].min()
+            alt_max = df['altitude'].max()
+            elevation_gain = alt_max - alt_min
+        else:
+            elevation_gain = 0
+        
+        power = df['power'].values
+        distance_km = (df['distance'].values[-1] - df['distance'].values[0]) / 1000 if 'distance' in df.columns else 0
+        
+        # ===== STEP 5: Elevation Data Preparation =====
+        alt_values = df_valid['altitude'].values if 'altitude' in df_valid.columns else np.zeros(len(df_valid))
+        dist_km_values = df_valid['distance_km'].values if 'distance_km' in df_valid.columns else np.zeros(len(df_valid))
+        alt_total = alt_values.tolist()
+        dist_total = dist_km_values.tolist()
+        
+        # ===== STEP 6: Efforts Data Calculation (Using Core Module) =====
+        # Extract effort-related arrays
+        time_sec = df['time_sec'].values if 'time_sec' in df.columns else np.arange(len(df))
+        power_all = df['power'].values if 'power' in df.columns else np.zeros(len(df))
+        hr_all = df['heartrate'].values if 'heartrate' in df.columns else np.zeros(len(df))
+        cadence_all = df['cadence'].values if 'cadence' in df.columns else np.zeros(len(df))
+        grade_all = df['grade'].values if 'grade' in df.columns else np.zeros(len(df))
+        distance_all = df['distance'].values if 'distance' in df.columns else np.zeros(len(df))
+        
+        # Prepare data for core processing
+        efforts_data_json = prepare_efforts_data(
+            df, efforts, ftp, weight, geojson_data, 
+            orig_indices, alt_values, dist_km_values
+        )
+        
+        # Parse to get efforts_list for elevation graph
+        efforts_list = json.loads(efforts_data_json)
+        elevation_graph_data = json.dumps({
+            'distance': dist_total, 
+            'altitude': alt_total, 
+            'efforts': efforts_list
+        })
+        
+        # ===== STEP 7: HTML Rendering (Using Renderer Module) =====
+        html = render_html(
+            efforts_data_json=efforts_data_json,
+            elevation_data_json=elevation_graph_data,
+            geojson_str=geojson_str,
+            maptiler_key=MAPTILER_KEY,
+            center_lat=center_lat,
+            center_lon=center_lon,
+            zoom=zoom,
+            distance_km=distance_km
+        )
+        
+        logger.info("Mappa 3D generata con successo")
+        return html
+        
+    except Exception as e:
+        logger.error(f"Errore generazione mappa 3D: {e}", exc_info=True)
+        raise

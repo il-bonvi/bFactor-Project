@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
-from .engine_PEFFORT import format_time_hhmmss, get_zone_color
+from .peffort_engine import format_time_hhmmss, get_zone_color
 
 logger = logging.getLogger(__name__)
 
