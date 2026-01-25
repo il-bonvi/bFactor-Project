@@ -6,7 +6,7 @@ import pandas as pd
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QLabel, QFileDialog, QMessageBox,
-    QTabWidget, QScrollArea, QColorDialog
+    QTabWidget, QScrollArea, QColorDialog, QCheckBox
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
@@ -23,6 +23,7 @@ from .cli_args_RR import parse_args
 
 # Modular components
 from .ui_builders_RR import create_dati_tab, create_layout_tab
+from .visual_editor_RR import create_visual_editor_tab
 from .data_handlers_RR import (
     import_csv as import_csv_handler,
     populate_data_table as populate_data_table_handler,
@@ -80,11 +81,11 @@ class RaceReportGUI(QMainWindow):
         # Top toolbar
         toolbar = QHBoxLayout()
         
-        btn_import = QPushButton("Importa CSV")
+        btn_import = QPushButton("📁 Importa CSV")
         btn_import.clicked.connect(self.import_csv)
         toolbar.addWidget(btn_import)
         
-        btn_import_logo = QPushButton("Importa Logo")
+        btn_import_logo = QPushButton("🖼️ Importa Logo")
         btn_import_logo.clicked.connect(self.import_logo)
         toolbar.addWidget(btn_import_logo)
         
@@ -105,17 +106,21 @@ class RaceReportGUI(QMainWindow):
         
         # Create DATI tab
         self.dati_tab = create_dati_tab(self)
-        self.main_tabs.addTab(self.dati_tab, "DATI")
+        self.main_tabs.addTab(self.dati_tab, "📊 DATI")
         
         # Create LAYOUT tab (contains layout controls + preview tabs on the right)
         self.layout_tab = create_layout_tab(self)
-        self.main_tabs.addTab(self.layout_tab, "LAYOUT")
+        self.main_tabs.addTab(self.layout_tab, "⚙️ LAYOUT AVANZATO")
+        
+        # Create VISUAL EDITOR tab (NEW!)
+        self.visual_editor_tab = create_visual_editor_tab(self)
+        self.main_tabs.addTab(self.visual_editor_tab, "🎨 EDITOR VISUALE")
         
         # Export section
         export_layout = QHBoxLayout()
         export_layout.addStretch()
         
-        self.btn_export = QPushButton("Esporta PDF")
+        self.btn_export = QPushButton("📄 Esporta PDF")
         self.btn_export.clicked.connect(self.export_pdf)
         self.btn_export.setEnabled(False)
         export_layout.addWidget(self.btn_export)
