@@ -332,6 +332,16 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         .control-btn {{ background: #1e40af; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .3s ease; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
         .control-btn:hover {{ background: #1e3a8a; box-shadow: 0 4px 12px rgba(0,0,0,.4); }}
         #styleSelect {{ background: #1e40af; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
+        #sidebar {{ position: fixed; left: 0; top: 0; width: 340px; height: 100%; background: rgba(15,23,42,.98); border-right: 1px solid rgba(255,255,255,.2); transform: translateX(-340px); transition: transform .3s ease; z-index: 100; overflow-y: auto; padding: 20px; }}
+        #sidebar.active {{ transform: translateX(0); }}
+        #sidebar-close {{ position: absolute; top: 15px; right: 15px; background: #1e40af; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }}
+        #sidebar-close:hover {{ background: #1e3a8a; }}
+        .sidebar-section {{ margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,.1); }}
+        .sidebar-section:last-child {{ border-bottom: none; }}
+        .sidebar-title {{ color: #60a5fa; font-size: 13px; font-weight: 600; margin-bottom: 10px; }}
+        .sidebar-row {{ display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; color: #9ca3af; }}
+        .sidebar-label {{ color: #9ca3af; }}
+        .sidebar-value {{ color: #fbbf24; font-weight: 600; }}
     </style>
 </head>
 <body>
@@ -339,6 +349,11 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
     <div id='map'></div>
     <div id='elevation-chart'>
         <div id='resize-handle'></div>
+    </div>
+    
+    <div id='sidebar'>
+        <button id='sidebar-close'>✕</button>
+        <div id='sidebar-content'></div>
     </div>
 
     <div class='info-panel'>
@@ -395,6 +410,185 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         
         let activeEffortLayer = null;
         let activeEffortIdx = null;
+        let currentEfforts = JSON.parse('{efforts_data}');
+
+        function openEffortSidebar(idx) {{
+            const effort = currentEfforts[idx];
+            const sidebar = document.getElementById('sidebar');
+            
+            let hrHtml = effort.max_hr > 0 ? `
+                <div class="sidebar-section">
+                    <div class="sidebar-title">❤️ FREQUENZA CARDIACA</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Media</span>
+                        <span class="sidebar-value">${{effort.avg_hr.toFixed(0)}} bpm</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Massima</span>
+                        <span class="sidebar-value">${{effort.max_hr.toFixed(0)}} bpm</span>
+                    </div>
+                </div>
+            ` : '';
+            
+            let vamHtml = effort.avg_grade >= 4.5 ? `
+                <div class="sidebar-row">
+                    <span class="sidebar-label">Teorico</span>
+                    <span class="sidebar-value">${{effort.vam_teorico.toFixed(0)}} m/h</span>
+                </div>
+            ` : '';
+            
+            const html = `
+                <div class="sidebar-section">
+                    <div class="sidebar-title">⚡ POTENZA - Effort #${{idx + 1}}</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Media</span>
+                        <span class="sidebar-value">${{effort.avg.toFixed(0)}} W</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Best 5s</span>
+                        <span class="sidebar-value">${{effort.best_5s}} W</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">1ª metà</span>
+                        <span class="sidebar-value">${{effort.watts_first.toFixed(0)}} W</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">2ª metà</span>
+                        <span class="sidebar-value">${{effort.watts_second.toFixed(0)}} W</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Rapporto</span>
+                        <span class="sidebar-value">${{effort.watts_ratio.toFixed(2)}}</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">⚖️ POTENZA RELATIVA</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Media</span>
+                        <span class="sidebar-value">${{effort.w_kg.toFixed(2)}} W/kg</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Best 5s</span>
+                        <span class="sidebar-value">${{effort.best_5s_watt_kg.toFixed(2)}} W/kg</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">⏱️ TEMPO & DISTANZA</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Durata</span>
+                        <span class="sidebar-value">${{effort.duration}}s</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Distanza</span>
+                        <span class="sidebar-value">${{effort.distance_km.toFixed(2)}} km</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Velocità</span>
+                        <span class="sidebar-value">${{effort.avg_speed.toFixed(1)}} km/h</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">🏔️ ALTIMETRIA</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Guadagno</span>
+                        <span class="sidebar-value">${{effort.elevation.toFixed(0)}} m</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Media</span>
+                        <span class="sidebar-value">${{effort.avg_grade.toFixed(1)}}%</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Massima</span>
+                        <span class="sidebar-value">${{effort.max_grade.toFixed(1)}}%</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">💨 VAM</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Effettivo</span>
+                        <span class="sidebar-value">${{effort.vam.toFixed(0)}} m/h</span>
+                    </div>
+                    ${{vamHtml}}
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">🌀 CADENZA</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Media</span>
+                        <span class="sidebar-value">${{effort.avg_cadence.toFixed(0)}} rpm</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">🔋 LAVORO (kJ)</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Totale</span>
+                        <span class="sidebar-value">${{effort.kj.toFixed(0)}} kJ</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Sopra CP</span>
+                        <span class="sidebar-value">${{effort.kj_over_cp.toFixed(0)}} kJ</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Per kg</span>
+                        <span class="sidebar-value">${{effort.kj_kg.toFixed(1)}} kJ/kg</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Per kg > CP</span>
+                        <span class="sidebar-value">${{effort.kj_kg_over_cp.toFixed(1)}} kJ/kg</span>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-title">🔥 DENSITÀ ORARIA (kJ/h/kg)</div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Totale</span>
+                        <span class="sidebar-value">${{effort.kj_h_kg.toFixed(1)}} kJ/h/kg</span>
+                    </div>
+                    <div class="sidebar-row">
+                        <span class="sidebar-label">Sopra CP</span>
+                        <span class="sidebar-value">${{effort.kj_h_kg_over_cp.toFixed(1)}} kJ/h/kg</span>
+                    </div>
+                </div>
+                
+                ${{hrHtml}}
+            `;
+            
+            document.getElementById('sidebar-content').innerHTML = html;
+            sidebar.classList.add('active');
+            
+            // Highlights chart e segmento mappa
+            highlightEffortInChart(idx);
+            removeActiveEffortLayer();
+            activeEffortIdx = idx;
+            const layerId = `effort-${{idx}}`;
+            activeEffortLayer = layerId;
+            
+            const effort_data = currentEfforts[idx];
+            const segmentGeoJSON = {{
+                'type': 'Feature',
+                'geometry': {{
+                    'type': 'LineString',
+                    'coordinates': effort_data.segment
+                }}
+            }};
+            
+            map.addSource(layerId, {{ 'type': 'geojson', 'data': segmentGeoJSON }});
+            map.addLayer({{
+                'id': layerId,
+                'type': 'line',
+                'source': layerId,
+                'paint': {{
+                    'line-color': effort_data.color,
+                    'line-width': 6,
+                    'line-opacity': 0.8
+                }}
+            }});
+        }}
 
         function removeActiveEffortLayer() {{
             if (activeEffortLayer && map.getLayer(activeEffortLayer)) {{
@@ -679,61 +873,21 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
                 
                 const marker = new maplibregl.Marker({{ element: el }})
                     .setLngLat([coordStart[0], coordStart[1]])
-                    .setPopup(new maplibregl.Popup({{ anchor: 'bottom', offset: [0, -15], maxWidth: 450 }}).setHTML(`
-                        <div style="padding: 10px; min-width: 340px; font-size: 11px; color: #9ca3af; background: rgba(15,23,42,.95);">
-                            <b style="color: #60a5fa; font-size: 13px;">Effort #${{idx + 1}}</b><br>
+                    .setPopup(new maplibregl.Popup({{ anchor: 'top', offset: [0, 15], maxWidth: 250 }}).setHTML(`
+                        <div style="padding: 10px; font-size: 12px; color: #9ca3af; background: rgba(15,23,42,.95);">
+                            <b style="color: #60a5fa;">Effort #${{idx + 1}}</b><br>
                             <div style="border-top: 1px solid rgba(255,255,255,.2); margin: 6px 0; padding-top: 6px;">
-                                <div style="color: #fbbf24;"><b>⚡ ${{effort.avg.toFixed(0)}} W</b> | 5″🔺${{effort.best_5s}} W | 🌀 ${{effort.avg_cadence.toFixed(0)}} rpm</div>
-                                <div>⏱️ ${{effort.duration}}s | ⚖️ ${{effort.w_kg.toFixed(2)}} W/kg | 5″🔺${{effort.best_5s_watt_kg.toFixed(2)}} W/kg</div>
-                                <div>🔀 ${{effort.watts_first.toFixed(0)}} W | ${{effort.watts_second.toFixed(0)}} W | ${{effort.watts_ratio.toFixed(2)}}</div>
-                                <div>🚴‍♂️ ${{effort.avg_speed.toFixed(1)}} km/h | 📏 ${{effort.distance_km.toFixed(2)}} km</div>
-                                <div>∅ ${{effort.avg_grade.toFixed(1)}}% | 🔺${{effort.max_grade.toFixed(1)}}% | 🏔️ ${{effort.elevation.toFixed(0)}} m</div>
-                                <div>💨 ${{effort.vam.toFixed(0)}} m/h ${{effort.avg_grade >= 4.5 ? ` | 🧮 ${{effort.vam_teorico.toFixed(0)}} m/h` : ''}}</div>
-                                <div>🔋 ${{effort.kj.toFixed(0)}} kJ | ${{effort.kj_over_cp.toFixed(0)}} kJ > CP</div>
-                                <div>💪 ${{effort.kj_kg.toFixed(1)}} kJ/kg | ${{effort.kj_kg_over_cp.toFixed(1)}} kJ/kg > CP</div>
-                                <div>🔥 ${{effort.kj_h_kg.toFixed(1)}} kJ/h/kg | ${{effort.kj_h_kg_over_cp.toFixed(1)}} kJ/h/kg > CP</div>
-                                ${{effort.max_hr > 0 ? `<div>❤️ ∅${{effort.avg_hr.toFixed(0)}} bpm | 🔺${{effort.max_hr.toFixed(0)}} bpm</div>` : ''}}
+                                <div><b>⚡ ${{effort.avg.toFixed(0)}} W</b> | 🌀 ${{effort.avg_cadence.toFixed(0)}} rpm</div>
+                                <div>⏱️ ${{effort.duration}}s | 🚴‍♂️ ${{effort.avg_speed.toFixed(1)}} km/h</div>
                             </div>
                         </div>
                     `))
                     .addTo(map);
                 
-                // Aggiungi event listener per mostrare/nascondere il segmento
-                marker.getPopup().on('open', () => {{
-                    removeActiveEffortLayer();
-                    activeEffortIdx = idx;
-                    const layerId = `effort-${{idx}}`;
-                    activeEffortLayer = layerId;
-                    
-                    const segmentGeoJSON = {{
-                        'type': 'Feature',
-                        'geometry': {{
-                            'type': 'LineString',
-                            'coordinates': effort.segment
-                        }}
-                    }};
-                    
-                    map.addSource(layerId, {{ 'type': 'geojson', 'data': segmentGeoJSON }});
-                    map.addLayer({{
-                        'id': layerId,
-                        'type': 'line',
-                        'source': layerId,
-                        'paint': {{
-                            'line-color': effort.color,
-                            'line-width': 6,
-                            'line-opacity': 0.8
-                        }}
-                    }});
-                    
-                    // Evidenzia la traccia nel grafico altimetrico
-                    highlightEffortInChart(idx);
-                    console.log(`Segment ${{idx}} displayed and highlighted`);
-                }});
-                
-                marker.getPopup().on('close', () => {{
-                    removeActiveEffortLayer();
-                    activeEffortIdx = null;
-                    resetChartHighlight();
+                // Click sul marker apre subito la sidebar
+                el.addEventListener('click', () => {{
+                    openEffortSidebar(idx);
+                    marker.getPopup().addTo(map);
                 }});
             }});
             console.log('Markers added');
@@ -772,6 +926,14 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         function resetView() {{
             map.flyTo({{ center: [{center_lon}, {center_lat}], zoom: {zoom}, pitch: 45, bearing: 0, duration: 1500 }});
         }}
+        
+        // Event listener per chiudere la sidebar
+        document.getElementById('sidebar-close').addEventListener('click', () => {{
+            document.getElementById('sidebar').classList.remove('active');
+            removeActiveEffortLayer();
+            activeEffortIdx = null;
+            resetChartHighlight();
+        }});
 
         // Initialize style name on first load
         map.on('load', () => {{ updateStyleName(); }});
