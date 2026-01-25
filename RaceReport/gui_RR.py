@@ -2,6 +2,7 @@
 
 import sys
 import os
+import subprocess
 import pandas as pd
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -439,12 +440,13 @@ class RaceReportGUI(QMainWindow):
             if msg.clickedButton() == btn_open:
                 try:
                     import platform
-                    if platform.system() == "Windows":
+                    system = platform.system()
+                    if system == "Windows":
                         os.startfile(pdf_path)
-                    elif platform.system() == "Darwin":
-                        os.system(f"open '{pdf_path}'")
+                    elif system == "Darwin":
+                        subprocess.Popen(['open', pdf_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     else:
-                        os.system(f"xdg-open '{pdf_path}'")
+                        subprocess.Popen(['xdg-open', pdf_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 except Exception as e:
                     print(f"Impossibile aprire automaticamente il PDF: {e}")
             

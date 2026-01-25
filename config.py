@@ -26,6 +26,9 @@ MAPTILER_KEY = os.getenv(
 )
 
 # Mapbox token (pubblico - può rimanere qui)
+# NOTA SICUREZZA: Questo è un token pubblico di Mapbox per demo/sviluppo.
+# È sicuro includerlo nel codice sorgente poiché è limitato per utilizzo frontend.
+# Per produzione, considera di sostituirlo con un token personale se necessario.
 MAPBOX_TOKEN = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
 
 
