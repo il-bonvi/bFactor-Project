@@ -13,8 +13,9 @@ Vista 2D degli effort su coordinate geografiche
 from typing import Optional, List, Tuple, Dict, Any
 import logging
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QHBoxLayout, 
-    QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QMessageBox
+    QWidget, QVBoxLayout, QLabel, QHBoxLayout,
+    QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QMessageBox,
+    QComboBox
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import QUrl
@@ -32,6 +33,12 @@ class PlanimetriaTab(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.current_style = "open-street-map"
+        self.last_df: Optional[pd.DataFrame] = None
+        self.last_efforts: Optional[List[Tuple[int, int, float]]] = None
+        self.last_sprints: Optional[List[Dict[str, Any]]] = None
+        self.last_ftp: Optional[float] = None
+        self.last_weight: Optional[float] = None
         self.init_ui()
         self.html_path: Optional[str] = None
         
@@ -45,6 +52,17 @@ class PlanimetriaTab(QWidget):
         top_bar = QHBoxLayout()
         self.status_label = QLabel("Vista planimetrica - Pronto")
         top_bar.addWidget(self.status_label)
+
+        self.style_selector = QComboBox()
+        style_options = [
+            ("OpenStreetMap (Default)", "open-street-map"),
+            ("Carto Positron (Strade chiare)", "carto-positron"),
+        ]
+        for label, value in style_options:
+            self.style_selector.addItem(label, userData=value)
+        self.style_selector.setCurrentIndex(0)
+        self.style_selector.currentIndexChanged.connect(self.on_style_changed)
+        top_bar.addWidget(self.style_selector)
         top_bar.addStretch()
         
         self.btn_browser = QPushButton("Apri nel Browser")
@@ -92,45 +110,83 @@ class PlanimetriaTab(QWidget):
         
         layout.addLayout(tables_container, stretch=1)
         
-    def update_analysis(self, df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
+    def update_analysis(self, df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
                        sprints: List[Dict[str, Any]], ftp: float, weight: float,
                        params_str: str):
         """Aggiorna la visualizzazione con i nuovi dati analizzati"""
         try:
-            from .exporter_PPLAN import plot_planimetria_html
-            
-            logger.info("Generazione mappa planimetrica...")
-            self.status_label.setText("⏳ Generazione mappa...")
-            
             # Verifica presenza coordinate GPS
             if 'position_lat' not in df.columns or 'position_long' not in df.columns:
                 self.status_label.setText("❌ Coordinate GPS non disponibili")
-                QMessageBox.warning(self, "Attenzione", 
+                QMessageBox.warning(self, "Attenzione",
                     "File FIT non contiene coordinate GPS.\nUsa la tab 'Indoor' per tracce senza GPS.")
                 return
-            
-            # Genera HTML con mappa
-            html = plot_planimetria_html(df, efforts, sprints, ftp, weight)
-            
-            # Salva e visualizza
+
+            # Cache ultimi dati per permettere cambio mappa senza ricalcolo
+            self.last_df = df
+            self.last_efforts = efforts
+            self.last_sprints = sprints
+            self.last_ftp = ftp
+            self.last_weight = weight
+
+            self.render_map()
+
+            # Popola tabelle
+            self.populate_tables(df, efforts, sprints, ftp, weight)
+
+            logger.info("Mappa planimetrica generata con successo")
+
+        except Exception as e:
+            logger.error(f"Errore generazione mappa: {e}", exc_info=True)
+            self.status_label.setText("❌ Errore generazione mappa")
+            QMessageBox.critical(self, "Errore", f"Errore generazione mappa: {str(e)}")
+
+    def render_map(self):
+        """Renderizza la mappa usando i dati in cache e lo stile selezionato."""
+        if self.last_df is None or self.last_efforts is None or self.last_sprints is None:
+            self.status_label.setText("Carica un FIT per visualizzare la mappa")
+            return
+
+        try:
+            from .exporter_PPLAN import plot_planimetria_html
+
+            logger.info("Generazione mappa planimetrica con stile %s...", self.current_style)
+            self.status_label.setText("⏳ Generazione mappa...")
+
+            html = plot_planimetria_html(
+                self.last_df,
+                self.last_efforts,
+                self.last_sprints,
+                self.last_ftp,
+                self.last_weight,
+                map_style=self.current_style,
+            )
+
             temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.html', encoding='utf-8')
             temp_file.write(html)
             temp_file.close()
             self.html_path = temp_file.name
             self.web_view.setUrl(QUrl.fromLocalFile(temp_file.name))
-            
+
             self.btn_browser.setEnabled(True)
-            self.status_label.setText(f"✅ Mappa generata: {len(efforts)} efforts + {len(sprints)} sprints")
-            
-            # Popola tabelle
-            self.populate_tables(df, efforts, sprints, ftp, weight)
-            
-            logger.info("Mappa planimetrica generata con successo")
-            
+            self.status_label.setText(
+                f"✅ Mappa generata: {len(self.last_efforts)} efforts + {len(self.last_sprints)} sprints"
+            )
+
         except Exception as e:
             logger.error(f"Errore generazione mappa: {e}", exc_info=True)
             self.status_label.setText("❌ Errore generazione mappa")
             QMessageBox.critical(self, "Errore", f"Errore generazione mappa: {str(e)}")
+
+    def on_style_changed(self, idx: int):
+        """Cambia lo stile della mappa senza ricalcolare gli effort."""
+        style_value = self.style_selector.currentData()
+        if style_value:
+            self.current_style = style_value
+            if self.last_df is not None:
+                self.render_map()
+            else:
+                self.status_label.setText("Seleziona un FIT per vedere la mappa")
     
     def populate_tables(self, df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
                        sprints: List[Dict[str, Any]], ftp: float, weight: float):

@@ -55,8 +55,9 @@ def calculate_zoom_level(lat_values, lon_values):
     return zoom
 
 
-def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
-                          sprints: List[Dict[str, Any]], ftp: float, weight: float) -> str:
+def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
+                          sprints: List[Dict[str, Any]], ftp: float, weight: float,
+                          map_style: str = "open-street-map") -> str:
     """
     Genera mappa planimetrica HTML con efforts e sprints evidenziati.
     
@@ -71,6 +72,14 @@ def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]
         HTML string con mappa Plotly interattiva
     """
     logger.info("Generazione mappa planimetrica...")
+
+    allowed_styles = {
+        "open-street-map",
+        "carto-positron",
+    }
+    if map_style not in allowed_styles:
+        logger.warning("Map style '%s' non valido, fallback a open-street-map", map_style)
+        map_style = "open-street-map"
     
     # Accedi alle coordinate GPS
     lat = df['position_lat'].values
@@ -89,13 +98,13 @@ def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]
     
     fig = go.Figure()
     
-    # Traccia principale - percorso completo in grigio
+    # Traccia principale - percorso completo
     step = max(1, len(lat[valid]) // 2000)
     fig.add_trace(go.Scattermapbox(
         lat=lat[valid][::step],
         lon=lon[valid][::step],
         mode='lines',
-        line=dict(color='lightgray', width=2),
+        line=dict(color="#EEFF00", width=3), #COLORE TRACCIA PLANIMETRIA
         name='Percorso',
         hoverinfo='skip',
         showlegend=False
@@ -175,7 +184,7 @@ def plot_planimetria_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]
     fig.update_layout(
         mapbox=dict(
             accesstoken=MAPBOX_TOKEN,
-            style="open-street-map",
+            style=map_style,
             center=dict(lat=center_lat, lon=center_lon),
             zoom=zoom_level
         ),
