@@ -86,10 +86,15 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         lat = np.atleast_1d(lat)
         lon = np.atleast_1d(lon)
         
+        # Valida che non tutti siano NaN
+        if np.isnan(lat).all() or np.isnan(lon).all():
+            raise ValueError("Tutti i valori di coordinate sono NaN - impossibile creare mappa 3D")
+        
+        # Calcola centro (ignora NaN)
         center_lat = float(np.nanmean([float(np.nanmin(lat)), float(np.nanmax(lat))]))
         center_lon = float(np.nanmean([float(np.nanmin(lon)), float(np.nanmax(lon))]))
         
-        # Valida NaN
+        # Valida NaN risultanti
         if np.isnan(center_lat) or np.isnan(center_lon):
             raise ValueError(f"Coordinate non valide: lat={center_lat}, lon={center_lon}")
         

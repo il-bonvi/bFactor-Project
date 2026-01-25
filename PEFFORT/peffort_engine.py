@@ -134,9 +134,24 @@ def parse_fit(file_path: str) -> pd.DataFrame:
     df["power"] = pd.to_numeric(df["power"], errors='coerce').fillna(0).astype(int)
     df["heartrate"] = pd.to_numeric(df["heartrate"], errors='coerce').fillna(0).astype(int)
     df["cadence"] = pd.to_numeric(df["cadence"], errors='coerce').fillna(0).astype(int)
-    df["distance"] = pd.to_numeric(df["distance"], errors='coerce').ffill().fillna(0)
+    
+    # Distance con gestione NaN completi
+    df["distance"] = pd.to_numeric(df["distance"], errors='coerce')
+    if df["distance"].isna().all():
+        logger.warning("Tutti i valori di distance sono NaN - impossibile calcolare distanze")
+        df["distance"] = 0
+    else:
+        df["distance"] = df["distance"].ffill().fillna(0)
+    
     df["grade"] = pd.to_numeric(df["grade"], errors='coerce').fillna(0)
-    df["altitude"] = pd.to_numeric(df["altitude"], errors='coerce').ffill().fillna(0)
+    
+    # Altitude con gestione NaN completi
+    df["altitude"] = pd.to_numeric(df["altitude"], errors='coerce')
+    if df["altitude"].isna().all():
+        logger.warning("Tutti i valori di altitude sono NaN - impossibile calcolare elevazioni")
+        df["altitude"] = 0
+    else:
+        df["altitude"] = df["altitude"].ffill().fillna(0)
     
     # GPS coordinates (possono non essere presenti per indoor)
     df["position_lat"] = pd.to_numeric(df["position_lat"], errors='coerce')
@@ -144,8 +159,9 @@ def parse_fit(file_path: str) -> pd.DataFrame:
     
     # Converti semicircles in gradi se necessario
     if df["position_lat"].notna().any() and df["position_lat"].abs().max() > 180:
-        df["position_lat"] = df["position_lat"] * (180 / 2**31)
-        df["position_long"] = df["position_long"] * (180 / 2**31)
+        # Corretto: semicircles to degrees = value * (180 / (2^31 - 1))
+        df["position_lat"] = df["position_lat"] * (180 / (2**31 - 1))
+        df["position_long"] = df["position_long"] * (180 / (2**31 - 1))
         logger.info("Coordinate GPS convertite da semicircles a gradi")
     
     df["time_sec"] = (df["time"] - df["time"].iloc[0]).dt.total_seconds()
@@ -169,9 +185,16 @@ def get_zone_color(avg_power: float, ftp: float) -> str:
         return "#cccccc"  # grigio neutro
     
     perc = (avg_power / ftp) * 100
+    
+    # Gestione valori estremi
+    if perc < 0:
+        return "#cccccc"  # grigio per valori negativi
+    
     for th, color, _ in ZONE_COLORS:
         if perc < th:
             return color
+    
+    # Valori > 999% FTP usano default
     return ZONE_DEFAULT[1]
 
 
@@ -209,15 +232,15 @@ def trim_segment(power: np.ndarray, start: int, end: int, trim_win: int, trim_pc
         if avg <= 0:
             break
 
-        # Trim inizio
-        if start + trim_win < end:
+        # Trim inizio (con boundary check)
+        if start + trim_win < end and start + trim_win <= len(power):
             head_avg = power[start:start+trim_win].mean()
             if head_avg < avg * trim_pct / 100:
                 start += trim_win
                 changed = True
 
-        # Trim fine
-        if end - trim_win > start:
+        # Trim fine (con boundary check)
+        if end - trim_win > start and end <= len(power):
             tail_avg = power[end-trim_win:end].mean()
             if tail_avg < avg * trim_pct / 100:
                 end -= trim_win
@@ -301,8 +324,23 @@ def create_efforts(df: pd.DataFrame, ftp: float, window_sec: int = 60, merge_pct
     return merged
 
 
-def merge_extend(df, efforts, merge_pct=15, trim_win=10, trim_low=85, extend_win=15, extend_low=80):
-    """Merge + estensione iterativa"""
+def merge_extend(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
+                 merge_pct: float = 15, trim_win: int = 10, trim_low: float = 85, 
+                 extend_win: int = 15, extend_low: float = 80) -> List[Tuple[int, int, float]]:
+    """Merge + estensione iterativa
+    
+    Args:
+        df: DataFrame con dati power
+        efforts: Lista di tuple (start, end, avg_power)
+        merge_pct: Percentuale differenza potenza per merge
+        trim_win: Finestra trim [s]
+        trim_low: Soglia trim [%]
+        extend_win: Finestra estensione [s]
+        extend_low: Soglia estensione [%]
+        
+    Returns:
+        Lista di efforts dopo merge/extend
+    """
     power = df["power"].values
     changed = True
     
@@ -358,20 +396,34 @@ def merge_extend(df, efforts, merge_pct=15, trim_win=10, trim_low=85, extend_win
 
 
 def split_included(df, efforts):
-    """Split se un effort è contenuto in un altro"""
+    """Split se un effort è contenuto in un altro
+    
+    Args:
+        df: DataFrame con dati power
+        efforts: Lista di tuple (start, end, avg_power)
+        
+    Returns:
+        Lista di efforts modificati dopo split
+    """
     power = df["power"].values
-    efforts.sort(key=lambda x: x[0])
+    efforts = sorted(efforts, key=lambda x: x[0])  # Create sorted copy
     changed = True
     
     while changed:
         changed = False
-        for i in range(len(efforts)):
-            for j in range(len(efforts)):
+        # Create a copy to avoid mutation during iteration
+        current_efforts = list(efforts)
+        
+        for i in range(len(current_efforts)):
+            if changed:  # Exit early if we've made a change
+                break
+                
+            for j in range(len(current_efforts)):
                 if i == j:
                     continue
                 
-                s, e, avg = efforts[i]
-                s2, e2, avg2 = efforts[j]
+                s, e, avg = current_efforts[i]
+                s2, e2, avg2 = current_efforts[j]
                 
                 # j completamente dentro i
                 if s < s2 and e2 < e:
@@ -392,15 +444,12 @@ def split_included(df, efforts):
                         if len(pow2) > 0:
                             new_efforts.append((e2, e, pow2.mean()))
                     
-                    # Rimuovi i e j, aggiungi nuovi
-                    efforts = [eff for k, eff in enumerate(efforts) if k != i and k != j]
+                    # Rimuovi i e j, aggiungi nuovi (modifica efforts, non current_efforts)
+                    efforts = [eff for k, eff in enumerate(current_efforts) if k != i and k != j]
                     efforts.extend(new_efforts)
                     efforts.sort(key=lambda x: x[0])
                     changed = True
                     break
-            
-            if changed:
-                break
     
     return efforts
 

@@ -55,7 +55,13 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
         else:
             img_html = "<p><i>Immagine grafico non disponibile</i></p>"
 
-        # Dati per calcoli
+        # Dati per calcoli (con controllo colonne)
+        required_cols = ["power", "time_sec", "altitude", "distance", "heartrate", "grade", "cadence", "distance_km"]
+        for col in required_cols:
+            if col not in df.columns:
+                logger.warning(f"Colonna mancante nel DataFrame: {col}")
+                df[col] = 0  # Fallback a zero per colonne mancanti
+        
         power = df["power"].values
         time_sec = df["time_sec"].values
         alt = df["altitude"].values
@@ -137,12 +143,18 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
                     best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
                     best_5s_watt = int(best_5s)
 
-                # Calcolo kJ
+                # Calcolo kJ (con logging per gap > 30s)
                 kj_seg = 0
+                skipped_gaps = 0
                 for k in range(1, len(seg_time)):
                     dt = seg_time[k] - seg_time[k-1]
                     if 0 < dt < 30:
                         kj_seg += seg_power[k] * dt
+                    elif dt >= 30:
+                        skipped_gaps += 1
+                
+                if skipped_gaps > 0:
+                    logger.warning(f"Effort #{effort_to_rank[i]}: {skipped_gaps} gap temporali >30s saltati nel calcolo kJ")
 
                 html_content += f"""
                     <tr>
