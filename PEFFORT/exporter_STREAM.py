@@ -6,7 +6,7 @@
 # ==============================================================================
 
 """
-EXPORTER INDOOR - Generazione grafico potenza vs tempo per indoor
+EXPORTER STREAM - Generazione grafico potenza vs tempo per stream
 Vista stream potenza nel tempo senza GPS/altimetria
 """
 
@@ -21,10 +21,10 @@ from .engine_PEFFORT import format_time_hhmmss, format_time_mmss, get_zone_color
 logger = logging.getLogger(__name__)
 
 
-def plot_indoor_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
+def plot_stream_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]], 
                      sprints: List[Dict[str, Any]], ftp: float, weight: float) -> str:
     """
-    Genera grafico indoor HTML con potenza vs tempo e efforts evidenziati.
+    Genera grafico stream HTML con potenza vs tempo e efforts evidenziati.
     
     Args:
         df: DataFrame con dati attività
@@ -36,7 +36,7 @@ def plot_indoor_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
     Returns:
         HTML string con grafico Plotly interattivo
     """
-    logger.info("Generazione grafico indoor...")
+    logger.info("Generazione grafico stream...")
     
     power = df["power"].values
     time_sec = df["time_sec"].values
@@ -202,7 +202,7 @@ def plot_indoor_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
         autosize=True,
         margin=dict(l=40, r=40, t=80, b=40),
         title=dict(
-            text="INDOOR ANALYSIS - Stream Potenza & Effort",
+            text="STREAM ANALYSIS - Stream Potenza & Effort",
             font=dict(size=20, color='#333'),
             x=0.5,
             xanchor='center'
@@ -229,5 +229,5 @@ def plot_indoor_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
     
     html = fig.to_html(config={'displayModeBar': True, 'responsive': True})
-    logger.info("Grafico indoor generato")
+    logger.info("Grafico stream generato")
     return html

@@ -119,7 +119,7 @@ class PlanimetriaTab(QWidget):
             if 'position_lat' not in df.columns or 'position_long' not in df.columns:
                 self.status_label.setText("❌ Coordinate GPS non disponibili")
                 QMessageBox.warning(self, "Attenzione",
-                    "File FIT non contiene coordinate GPS.\nUsa la tab 'Indoor' per tracce senza GPS.")
+                    "File FIT non contiene coordinate GPS.\nUsa la tab 'Stream' per tracce senza GPS.")
                 return
 
             # Cache ultimi dati per permettere cambio mappa senza ricalcolo

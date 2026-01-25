@@ -30,7 +30,7 @@ from .engine_PEFFORT import format_time_hhmmss
 from .exporter_PEFFORT import create_pdf_report, plot_unified_html
 from .config_PEFFORT import AnalysisConfig, AthleteProfile, EffortConfig, SprintConfig
 from .gui_PPLAN import PlanimetriaTab
-from .gui_STREAM import IndoorTab
+from .gui_STREAM import StreamTab
 
 # Import shared styles
 from shared.styles import TEMI, get_style
@@ -174,9 +174,9 @@ class EffortAnalyzer(QWidget):
         self.tab_planimetria = PlanimetriaTab(self)
         self.tabs.addTab(self.tab_planimetria, "🗺️ Planimetria")
         
-        # Tab 3: Indoor
-        self.tab_indoor = IndoorTab(self)
-        self.tabs.addTab(self.tab_indoor, "🏠 Indoor")
+        # Tab 3: Stream
+        self.tab_stream = StreamTab(self)
+        self.tabs.addTab(self.tab_stream, "📊 Stream")
         
         content_area.addWidget(self.tabs)
         main_layout.addLayout(content_area)
@@ -446,7 +446,7 @@ class EffortAnalyzer(QWidget):
             
             # Aggiorna anche le altre tabs
             self.tab_planimetria.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
-            self.tab_indoor.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
+            self.tab_stream.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
             
         except Exception as e:
             self.show_error_dialog(f"Errore imprevisto: {str(e)}")

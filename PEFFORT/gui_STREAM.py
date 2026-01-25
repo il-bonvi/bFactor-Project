@@ -6,7 +6,7 @@
 # ==============================================================================
 
 """
-GUI INDOOR - Scheda visualizzazione indoor (solo stream potenza)
+GUI STREAM - Scheda visualizzazione stream (solo stream potenza)
 Analisi effort senza GPS/altimetria - ideale per indoor trainer
 """
 
@@ -27,8 +27,8 @@ from .engine_PEFFORT import format_time_hhmmss
 logger = logging.getLogger(__name__)
 
 
-class IndoorTab(QWidget):
-    """Tab per visualizzazione indoor - solo stream potenza"""
+class StreamTab(QWidget):
+    """Tab per visualizzazione stream - solo stream potenza"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,14 +36,14 @@ class IndoorTab(QWidget):
         self.html_path: Optional[str] = None
         
     def init_ui(self):
-        """Inizializza UI della tab indoor"""
+        """Inizializza UI della tab stream"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(15)
         
         # Top bar
         top_bar = QHBoxLayout()
-        self.status_label = QLabel("Vista indoor - Pronto")
+        self.status_label = QLabel("Vista stream - Pronto")
         top_bar.addWidget(self.status_label)
         top_bar.addStretch()
         
@@ -103,7 +103,7 @@ class IndoorTab(QWidget):
             self.status_label.setText("⏳ Generazione grafico...")
             
             # Genera HTML con grafico potenza vs tempo
-            html = plot_indoor_html(df, efforts, sprints, ftp, weight)
+            html = plot_stream_html(df, efforts, sprints, ftp, weight)
             
             # Salva e visualizza
             temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.html', encoding='utf-8')
@@ -113,15 +113,15 @@ class IndoorTab(QWidget):
             self.web_view.setUrl(QUrl.fromLocalFile(temp_file.name))
             
             self.btn_browser.setEnabled(True)
-            self.status_label.setText(f"✅ Grafico indoor generato: {len(efforts)} efforts + {len(sprints)} sprints")
+            self.status_label.setText(f"✅ Grafico stream generato: {len(efforts)} efforts + {len(sprints)} sprints")
             
             # Popola tabelle
             self.populate_tables(df, efforts, sprints, ftp, weight)
             
-            logger.info("Grafico indoor generato con successo")
+            logger.info("Grafico stream generato con successo")
             
         except Exception as e:
-            logger.error(f"Errore generazione grafico indoor: {e}", exc_info=True)
+            logger.error(f"Errore generazione grafico stream: {e}", exc_info=True)
             self.status_label.setText("❌ Errore generazione grafico")
             QMessageBox.critical(self, "Errore", f"Errore generazione grafico: {str(e)}")
     
@@ -171,7 +171,7 @@ class IndoorTab(QWidget):
                 self.table_sprints.setItem(i, 2, QTableWidgetItem(f"{sprint['avg']:.0f}"))
                 self.table_sprints.setItem(i, 3, QTableWidgetItem(f"{int(max_hr)}"))
             
-            logger.info(f"Tabelle indoor populate: {len(efforts)} efforts, {len(sprints)} sprints")
+            logger.info(f"Tabelle stream populate: {len(efforts)} efforts, {len(sprints)} sprints")
         except Exception as e:
             logger.error(f"Errore popolazione tabelle indoor: {e}", exc_info=True)
     
