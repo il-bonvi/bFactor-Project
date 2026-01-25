@@ -11,10 +11,13 @@ Gestisce l'importazione di file XLSX da Cortex Metabolic System
 Estrae: intestazioni (riga 117), dati (da riga 119), metadati soggetto (celle specifiche)
 """
 
+import logging
 import pandas as pd
 import openpyxl
 from typing import Dict, Optional
 from .data_extraction_metapow import find_column, normalize_decimals
+
+logger = logging.getLogger(__name__)
 
 
 class CortexMetabolitParser:
@@ -79,6 +82,7 @@ class CortexMetabolitParser:
             }
         
         except Exception as e:
+            logger.error(f"Error parsing Cortex XLSX file {file_path}: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": f"Errore parsing Cortex XLSX: {str(e)}"
