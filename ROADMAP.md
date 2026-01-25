@@ -20,8 +20,7 @@
 ## Migliorie Grosse ai Moduli Esistenti
 
 **PEFFORT Analyzer**
-- Inserimento analisi Pcriterium
-- Inserimento analisi Pindoor
+- aggiornamento mappe3d
 
 ---
 Aggiorna questa roadmap con nuove idee e priorità secondo le esigenze del progetto.

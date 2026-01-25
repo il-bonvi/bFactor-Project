@@ -175,7 +175,7 @@ def _create_filters_section(analyzer):
     perc_row = QHBoxLayout()
     perc_row.addWidget(QLabel("Percentile min:"))
     analyzer.percentile_input = QLineEdit("80")
-    analyzer.percentile_input.setPlaceholderText("0-100")
+    analyzer.percentile_input.setPlaceholderText("80")
     analyzer.percentile_input.setMaximumWidth(60)
     # Aggiungi validazione
     analyzer.percentile_input.textChanged.connect(
@@ -187,8 +187,8 @@ def _create_filters_section(analyzer):
 
     count_row = QHBoxLayout()
     count_row.addWidget(QLabel("Valori/finestre:"))
-    analyzer.count_input = QLineEdit("3")
-    analyzer.count_input.setPlaceholderText("es. 3")
+    analyzer.count_input = QLineEdit("1")
+    analyzer.count_input.setPlaceholderText("1")
     analyzer.count_input.setMaximumWidth(60)
     # Aggiungi validazione
     analyzer.count_input.textChanged.connect(
@@ -201,7 +201,7 @@ def _create_filters_section(analyzer):
     sprint_row = QHBoxLayout()
     sprint_row.addWidget(QLabel("Sprint (s):"))
     analyzer.sprint_input = QLineEdit("10")
-    analyzer.sprint_input.setPlaceholderText("es. 10")
+    analyzer.sprint_input.setPlaceholderText("10")
     analyzer.sprint_input.setMaximumWidth(60)
     # Aggiungi validazione
     analyzer.sprint_input.textChanged.connect(

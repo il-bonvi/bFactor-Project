@@ -1,12 +1,21 @@
 # bFactor Project
-**Versione**: 0.5
-**Data Ultimo Update**: 23 Gennaio 2026  
+**Versione**: 0.6.5
+**Data Ultimo Update**: 25 Gennaio 2026  
 **Status**: ✅ In Produzione (Core Modules)
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)]()
-[![Science](https://img.shields.io/badge/Sports_Science-Performance-orange?style=for-the-badge)]()
-[![Status](https://img.shields.io/badge/Status-In_Development-green?style=for-the-badge)]()
+
+[![Python](https://img.shields.io/badge/Python-3.13%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![PySide6](https://img.shields.io/badge/PySide6-Qt-green?style=for-the-badge&logo=qt&logoColor=white)](https://wiki.qt.io/Qt_for_Python)
+[![Plotly](https://img.shields.io/badge/Plotly-Graphs-blue?style=for-the-badge&logo=plotly&logoColor=white)](https://plotly.com/)
+[![MapTiler](https://img.shields.io/badge/MapTiler-3D_Maps-blueviolet?style=for-the-badge&logo=mapbox&logoColor=white)](https://www.maptiler.com/)
+[![Mapbox](https://img.shields.io/badge/Mapbox-Maps-black?style=for-the-badge&logo=mapbox&logoColor=white)](https://www.mapbox.com/)
+[![NumPy](https://img.shields.io/badge/NumPy-Science-blue?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org/)
+[![SciPy](https://img.shields.io/badge/SciPy-Science-blue?style=for-the-badge&logo=scipy&logoColor=white)](https://scipy.org/)
+[![Matplotlib](https://img.shields.io/badge/Matplotlib-Plotting-orange?style=for-the-badge&logo=matplotlib&logoColor=white)](https://matplotlib.org/)
+[![Fitparse](https://img.shields.io/badge/fitparse-FIT_Parsing-lightgrey?style=for-the-badge)](https://github.com/dtcooper/python-fitparse)
+[![Status](https://img.shields.io/badge/Status-Production-green?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)]()
+
 
 > **Advanced Cycling Performance Analysis Suite**
 
@@ -18,16 +27,20 @@
 
 Il software si divide in diversi moduli principali accessibili da un launcher unificato:
 
+
 ### 1. 📊 PEFFORT Analyzer (Performance/Effort)
 Analisi automatizzata dei file di allenamento provenienti dai ciclocomputer.
 * **Parsing File FIT:** Importazione diretta e pulizia dati.
 * **Rilevamento Automatico:** Algoritmi per identificare sprint ed "efforts" sostenuti sopra specifiche soglie fisiologiche.
 * **Zonal Analysis:** Classificazione degli sforzi basata su $CP$.
 * **Reporting:** Generazione automatica di report PDF dettagliati con grafici interattivi (Plotly).
+* **Nuova funzione 3D Map (v0.6.5):** Visualizzazione interattiva della traccia e degli sforzi in 3D tramite MapTiler. Layout e stile coerenti con il resto dell'applicazione. Analisi altimetrica e sforzi visualizzati su mappa 3D, con supporto per MapTiler API key.
 
 ### 2. ⚡ OmniPD Calculator
 Modellazione avanzata della curva Potenza-Durata.
-* **Modello OmniPD:** Il modello OmniPD implementato è un modello unificato per descrivere l’intero profilo MMP, dagli sprint massimali agli sforzi di endurance prolungata. Integra Pmax, CP e W' in una formulazione fisiologicamente coerente, superando i limiti del modello CP classico alle durate brevi e molto lunghe. Introduce il concetto di W' efficace, che limita realisticamente l’espressione della riserva anaerobica nelle durate brevi e preserva W' come capacità fissa nel dominio severo. Per durate >30 min incorpora un termine log-lineare di fatica a lungo termine, migliorando l’accuratezza su dati MMP real-world. Il risultato è un modello continuo, interpretabile e robusto, adatto sia all’analisi scientifica sia all’applicazione pratica nel training e nel performance profiling. https://pubmed.ncbi.nlm.nih.gov/32131692/
+* **Modello OmniPD:** Modello unificato per descrivere l’intero profilo MMP, dagli sprint massimali agli sforzi di endurance prolungata. Integra Pmax, CP e W' in una formulazione fisiologicamente coerente, superando i limiti del modello CP classico alle durate brevi e molto lunghe. Introduce il concetto di W' efficace, che limita realisticamente l’espressione della riserva anaerobica nelle durate brevi e preserva W' come capacità fissa nel dominio severo. Per durate >30 min incorpora un termine log-lineare di fatica a lungo termine, migliorando l’accuratezza su dati MMP real-world. Il risultato è un modello continuo, interpretabile e robusto, adatto sia all’analisi scientifica sia all’applicazione pratica nel training e nel performance profiling. [PubMed](https://pubmed.ncbi.nlm.nih.gov/32131692/)
+* **GUI interattiva:** Inserimento manuale o importazione CSV/XLSX dei punti MMP, fitting automatico, visualizzazione grafici (matplotlib, plotly), analisi residui e W'eff.
+* **Utilizzo come libreria:** Funzioni esportate per fitting, visualizzazione, parsing file, e calcolo parametri.
 
 ### 3. 🧮 Omniselector
 Filtraggio avanzato dei dati di una curva di potenza per l’analisi della curva CP (modello OmniPD) su subset specifici.
@@ -62,14 +75,15 @@ Generatore di report PDF per gare ciclistiche.
 ## 🛠️ Stack Tecnologico
 
 Il progetto è costruito in **Python 3.10+** utilizzando:
-* **GUI:** `PySide6` (Qt)
+* **GUI:** `PySide6` (Qt), `QWebEngine` per rendering HTML interattivo
 * **Data Science:** `NumPy`, `Pandas`, `SciPy`
-* **Visualizzazione:** `Matplotlib`, `Plotly`
-* **File Handling:** `fitparse`, parsing CSV/XLSX
+* **Visualizzazione:** `Matplotlib` (plotting statico), `Plotly` (grafici interattivi), `PyQtGraph` (stream watt skeleton)
+* **Mappe e 3D:** `MapTiler` (API key, rendering 3D), `Mapbox` (token pubblico, planimetria), `maplibre-gl` (JS)
+* **File Handling:** `fitparse` (parsing FIT), parsing CSV/XLSX
 * **Database/Storage:** `SQLite` tramite `SQLAlchemy ORM` (bTeam), storage locale sicuro
 * **Export:** `xhtml2pdf` (report PDF)
 * **Networking/API:** `requests` (integrazione Intervals.icu, in sviluppo)
-* **Gestione configurazione:** file JSON custom (es. `bteam_config.json`, esclusi da Git)
+* **Gestione configurazione:** file JSON custom (es. `bteam_config.json`, esclusi da Git), `python-dotenv` per variabili ambiente
 * **Altre dipendenze:** gestione avanzata di temi/stili, modularizzazione tramite package Python
 
 ---
@@ -94,6 +108,20 @@ pip install -r requirements.txt
 ```bash
 python main.py
 ```
+---
+
+## 🗺️ Abilitare la funzione 3D Map di PEFFORT
+Per utilizzare la visualizzazione 3D della traccia in PEFFORT è necessario:
+1. Registrarsi su [MapTiler](https://cloud.maptiler.com/) e ottenere una API key gratuita.
+2. Creare un file `.env` nella cartella principale del progetto.
+3. Inserire la seguente riga nel file `.env`:
+
+```
+MAPTILER_KEY=LA_TUA_API_KEY
+```
+
+Senza questa chiave la funzione 3D Map non sarà disponibile.
+
 ---
 
 ## 👤 Autore

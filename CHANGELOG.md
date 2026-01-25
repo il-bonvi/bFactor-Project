@@ -1,3 +1,16 @@
+## [0.6.5] - 2026-01-25
+### PEFFORT - 3D Map, Robustezza, Miglioramenti
+- **Rendering 3D Map**: Aggiunta visualizzazione interattiva 3D della traccia e degli sforzi tramite MapTiler, oltre alla planimetria classica e stream watt (quest'ultimo in versione skeleton)
+- **Robustezza e gestione errori**: Migliorata gestione di dati mancanti/NaN, logging di warning e fallback su dati assenti, correzione costante conversione GPS semicircle-to-degree
+- **Validazione dati**: Check su coordinate e colonne richieste, errori chiari se coordinate tutte NaN, riempimento con zeri dove necessario
+- **Boundary checks**: Controlli su segmenti e slicing array, prevenzione errori out-of-bounds, calcoli sicuri anche con dati irregolari
+- **Calcoli sicuri**: Divisioni protette da zero, routine di calcolo aggiornate per dati sparsi
+- **Documentazione funzioni**: Type annotation e docstring dettagliate su funzioni chiave (merge_extend, split_included)
+- **Logica di dominio**: Migliorata selezione colore zona, gestione casi estremi/invalidi, logging gap >30s in calcolo kJ
+- **Bugfixes**: Numerosi fix minori e miglioramenti di stabilità
+- **Migliorata documentazione**: Chiariti comportamenti e interfacce delle funzioni
+- Questi cambiamenti rendono il codice più resiliente, manutenibile e chiaro per utenti e sviluppatori
+
 ## [0.6] - 2026-01-24
 ### Nuovo modulo: RaceReport - Generatore PDF report gare
 - **RaceReport**: aggiunto nuovo modulo per la creazione di report PDF di gare
