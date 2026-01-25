@@ -18,12 +18,13 @@ import bisect
 from typing import List, Tuple, Dict, Any
 from .engine_PEFFORT import get_zone_color
 
-logger = logging.getLogger(__name__)
+# Import config - usando sys.path per gestire correttamente il path relativo
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import MAPTILER_KEY, MAPBOX_TOKEN
 
-# Mapbox token pubblico per tile e terrain
-MAPBOX_TOKEN = "pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A"
-# MapTiler API key (provided by user)
-MAPTILER_KEY = "Q8Zxgdc7Nfnb2aiu8p72"
+logger = logging.getLogger(__name__)
 
 
 def export_traccia_geojson(df: pd.DataFrame) -> Tuple[dict, List[int]]:
@@ -318,8 +319,8 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #fff; }}
-        #map {{ position: absolute; top: 0; bottom: 180px; width: 100%; height: calc(100% - 180px); }}
-        #elevation-chart {{ position: absolute; bottom: 0; width: 100%; height: 180px; background: rgba(15,23,42,.95); overflow: hidden; }}
+        #map {{ position: absolute; top: 0; bottom: 180px; left: 310px; width: calc(100% - 310px); height: calc(100% - 180px); }}
+        #elevation-chart {{ position: absolute; bottom: 0; left: 310px; width: calc(100% - 310px); height: 180px; background: rgba(15,23,42,.95); overflow: hidden; }}
         #resize-handle {{ position: absolute; top: -5px; left: 0; right: 0; width: 100%; height: 10px; cursor: ns-resize; background: transparent; z-index: 20; }}
         #hover-tooltip {{ position: fixed; top: 10px; right: 20px; background: rgba(15,23,42,.95); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); font-size: 12px; color: #fbbf24; z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.5); }}
         .info-panel {{ position: absolute; top: 20px; left: 20px; background: rgba(15,23,42,.95); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); font-size: 14px; max-width: 280px; z-index: 10; box-shadow: 0 4px 20px rgba(0,0,0,.4); }}
@@ -332,8 +333,7 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
         .control-btn {{ background: #1e40af; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .3s ease; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
         .control-btn:hover {{ background: #1e3a8a; box-shadow: 0 4px 12px rgba(0,0,0,.4); }}
         #styleSelect {{ background: #1e40af; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }}
-        #sidebar {{ position: fixed; left: 0; top: 0; width: 340px; height: 100%; background: rgba(15,23,42,.98); border-right: 1px solid rgba(255,255,255,.2); transform: translateX(-340px); transition: transform .3s ease; z-index: 100; overflow-y: auto; padding: 20px; }}
-        #sidebar.active {{ transform: translateX(0); }}
+        #sidebar {{ position: fixed; left: 0; top: 0; width: 310px; height: 100%; background: rgba(15,23,42,.98); border-right: 1px solid rgba(255,255,255,.2); z-index: 100; overflow-y: auto; padding: 20px; }}
         #sidebar-close {{ position: absolute; top: 15px; right: 15px; background: #1e40af; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }}
         #sidebar-close:hover {{ background: #1e3a8a; }}
         .sidebar-section {{ margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,.1); }}
@@ -542,7 +542,7 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
             `;
             
             document.getElementById('sidebar-content').innerHTML = html;
-            sidebar.classList.add('active');
+            // Sidebar sempre visibile, nessun toggle necessario
             
             // Highlights chart e segmento mappa
             highlightEffortInChart(idx);
@@ -910,12 +910,12 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
             map.flyTo({{ center: [{center_lon}, {center_lat}], zoom: {zoom}, pitch: 45, bearing: 0, duration: 1500 }});
         }}
         
-        // Event listener per chiudere la sidebar
+        // Event listener per chiudere la sidebar (non necessario, sempre visibile)
         document.getElementById('sidebar-close').addEventListener('click', () => {{
-            document.getElementById('sidebar').classList.remove('active');
             removeActiveEffortLayer();
             activeEffortIdx = null;
             resetChartHighlight();
+            document.getElementById('sidebar-content').innerHTML = '';
         }});
 
         // Initialize style name on first load

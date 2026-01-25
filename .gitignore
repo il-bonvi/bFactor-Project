@@ -27,3 +27,10 @@ zBuilding/
 bTeam/bteam_config.json
 bTeam/bteam.db
 bTeam/bteam_data/
+
+# Environment variables e credenziali (IMPORTANTE!)
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
