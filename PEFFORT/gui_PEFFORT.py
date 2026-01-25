@@ -31,6 +31,7 @@ from .exporter_PEFFORT import create_pdf_report, plot_unified_html
 from .config_PEFFORT import AnalysisConfig, AthleteProfile, EffortConfig, SprintConfig
 from .gui_PPLAN import PlanimetriaTab
 from .gui_STREAM import StreamTab
+from .gui_3DMAP import Map3DTab
 
 # Import shared styles
 from shared.styles import TEMI, get_style
@@ -177,6 +178,10 @@ class EffortAnalyzer(QWidget):
         # Tab 3: Stream
         self.tab_stream = StreamTab(self)
         self.tabs.addTab(self.tab_stream, "📊 Stream")
+        
+        # Tab 4: 3D Map
+        self.tab_3dmap = Map3DTab(self)
+        self.tabs.addTab(self.tab_3dmap, "🌍 3D Map")
         
         content_area.addWidget(self.tabs)
         main_layout.addLayout(content_area)
@@ -447,6 +452,7 @@ class EffortAnalyzer(QWidget):
             # Aggiorna anche le altre tabs
             self.tab_planimetria.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
             self.tab_stream.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
+            self.tab_3dmap.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
             
         except Exception as e:
             self.show_error_dialog(f"Errore imprevisto: {str(e)}")

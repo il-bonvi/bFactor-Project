@@ -97,9 +97,9 @@ class StreamTab(QWidget):
                        params_str: str):
         """Aggiorna la visualizzazione con i nuovi dati analizzati"""
         try:
-            from .exporter_STREAM import plot_indoor_html
+            from .exporter_STREAM import plot_stream_html
             
-            logger.info("Generazione grafico indoor...")
+            logger.info("Generazione grafico stream...")
             self.status_label.setText("⏳ Generazione grafico...")
             
             # Genera HTML con grafico potenza vs tempo
