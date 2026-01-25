@@ -74,7 +74,8 @@ def parse_fit(file_path: str) -> pd.DataFrame:
         file_path: Percorso al file FIT
         
     Returns:
-        DataFrame con colonne: time, power, altitude, distance, heartrate, grade, cadence, time_sec, distance_km
+        DataFrame con colonne: time, power, altitude, distance, heartrate, grade, cadence, 
+        position_lat, position_long, time_sec, distance_km
         
     Raises:
         FileNotFoundError: Se il file non esiste
@@ -93,7 +94,8 @@ def parse_fit(file_path: str) -> pd.DataFrame:
     
     data = {
         "time": [], "power": [], "altitude": [], "distance": [], 
-        "heartrate": [], "grade": [], "cadence": []
+        "heartrate": [], "grade": [], "cadence": [],
+        "position_lat": [], "position_long": []
     }
     
     record_count = 0
@@ -107,6 +109,8 @@ def parse_fit(file_path: str) -> pd.DataFrame:
             data["heartrate"].append(vals.get("heart_rate"))
             data["grade"].append(vals.get("grade"))
             data["cadence"].append(vals.get("cadence"))
+            data["position_lat"].append(vals.get("position_lat"))
+            data["position_long"].append(vals.get("position_long"))
             record_count += 1
     except Exception as e:
         raise ValueError(f"Errore durante parsing record: {str(e)}")
@@ -133,6 +137,16 @@ def parse_fit(file_path: str) -> pd.DataFrame:
     df["distance"] = pd.to_numeric(df["distance"], errors='coerce').ffill().fillna(0)
     df["grade"] = pd.to_numeric(df["grade"], errors='coerce').fillna(0)
     df["altitude"] = pd.to_numeric(df["altitude"], errors='coerce').ffill().fillna(0)
+    
+    # GPS coordinates (possono non essere presenti per indoor)
+    df["position_lat"] = pd.to_numeric(df["position_lat"], errors='coerce')
+    df["position_long"] = pd.to_numeric(df["position_long"], errors='coerce')
+    
+    # Converti semicircles in gradi se necessario
+    if df["position_lat"].notna().any() and df["position_lat"].abs().max() > 180:
+        df["position_lat"] = df["position_lat"] * (180 / 2**31)
+        df["position_long"] = df["position_long"] * (180 / 2**31)
+        logger.info("Coordinate GPS convertite da semicircles a gradi")
     
     df["time_sec"] = (df["time"] - df["time"].iloc[0]).dt.total_seconds()
     df["distance_km"] = df["distance"] / 1000

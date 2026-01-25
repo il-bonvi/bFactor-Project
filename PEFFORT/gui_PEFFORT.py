@@ -16,7 +16,8 @@ import logging
 from PySide6.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QLabel,
     QFileDialog, QLineEdit, QHBoxLayout, QMessageBox, QFrame,
-    QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView, QComboBox
+    QGridLayout, QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
+    QTabWidget
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import QUrl, QBuffer, QIODevice, QRect
@@ -28,6 +29,8 @@ from pathlib import Path
 from .engine_PEFFORT import format_time_hhmmss
 from .exporter_PEFFORT import create_pdf_report, plot_unified_html
 from .config_PEFFORT import AnalysisConfig, AthleteProfile, EffortConfig, SprintConfig
+from .gui_PPLAN import PlanimetriaTab
+from .gui_STREAM import StreamTab
 
 # Import shared styles
 from shared.styles import TEMI, get_style
@@ -154,10 +157,44 @@ class EffortAnalyzer(QWidget):
 
         main_layout.addWidget(sidebar)
 
-        # --- AREA CONTENUTO ---
+        # --- AREA CONTENUTO CON TABS ---
         content_area = QVBoxLayout()
         content_area.setContentsMargins(15, 15, 15, 15)
         content_area.setSpacing(15)
+
+        # Tab Widget
+        self.tabs = QTabWidget()
+        self.tabs.setObjectName("MainTabs")
+        
+        # Tab 1: Altimetria (esistente)
+        self.tab_altimetria = self._create_altimetria_tab()
+        self.tabs.addTab(self.tab_altimetria, "📈 Altimetria")
+        
+        # Tab 2: Planimetria
+        self.tab_planimetria = PlanimetriaTab(self)
+        self.tabs.addTab(self.tab_planimetria, "🗺️ Planimetria")
+        
+        # Tab 3: Stream
+        self.tab_stream = StreamTab(self)
+        self.tabs.addTab(self.tab_stream, "📊 Stream")
+        
+        content_area.addWidget(self.tabs)
+        main_layout.addLayout(content_area)
+
+        self.file_path: Optional[str] = None
+        self.html_path: Optional[str] = None
+        self.current_df = None
+        self.current_efforts = None
+        self.current_sprints = None
+        self.current_params_str = ""
+        self.current_config: Optional[AnalysisConfig] = None
+    
+    def _create_altimetria_tab(self) -> QWidget:
+        """Crea la tab altimetria (codice originale)"""
+        tab = QWidget()
+        tab_layout = QVBoxLayout(tab)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.setSpacing(15)
 
         top_bar = QHBoxLayout()
         self.status_label = QLabel("Pronto per l'analisi")
@@ -173,11 +210,11 @@ class EffortAnalyzer(QWidget):
         self.btn_pdf.clicked.connect(self.export_pdf_action)
         self.btn_pdf.setEnabled(False)
         top_bar.addWidget(self.btn_pdf)
-        content_area.addLayout(top_bar)
+        tab_layout.addLayout(top_bar)
 
         self.web_view = QWebEngineView()
         self.web_view.setStyleSheet("background: #0f172a; border-radius: 8px;")
-        content_area.addWidget(self.web_view, stretch=3)
+        tab_layout.addWidget(self.web_view, stretch=3)
 
         tables_container = QHBoxLayout()
         tables_container.setSpacing(15)
@@ -205,16 +242,9 @@ class EffortAnalyzer(QWidget):
         tables_container.addLayout(eff_layout, stretch=2)
         tables_container.addLayout(spr_layout, stretch=1)
         
-        content_area.addLayout(tables_container, stretch=1)
-        main_layout.addLayout(content_area)
-
-        self.file_path: Optional[str] = None
-        self.html_path: Optional[str] = None
-        self.current_df = None
-        self.current_efforts = None
-        self.current_sprints = None
-        self.current_params_str = ""
-        self.current_config: Optional[AnalysisConfig] = None
+        tab_layout.addLayout(tables_container, stretch=1)
+        
+        return tab
 
     def parse_numeric_input(self, field_name: str, text: str, min_val: float = 0, 
                            max_val: Optional[float] = None) -> float:
@@ -411,8 +441,12 @@ class EffortAnalyzer(QWidget):
             self.status_label.setText(f"✅ {len(efforts)} efforts + {len(sprints)} sprints")
             logger.info(f"Analisi completata: {len(efforts)} efforts, {len(sprints)} sprints")
             
-            # Popola tabelle
+            # Popola tabelle tab altimetria
             self.populate_tables(df, efforts, sprints, ftp, weight)
+            
+            # Aggiorna anche le altre tabs
+            self.tab_planimetria.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
+            self.tab_stream.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
             
         except Exception as e:
             self.show_error_dialog(f"Errore imprevisto: {str(e)}")
