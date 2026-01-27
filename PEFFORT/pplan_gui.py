@@ -12,6 +12,10 @@ Vista 2D degli effort su coordinate geografiche
 
 from typing import Optional, List, Tuple, Dict, Any
 import logging
+import os
+import tempfile
+import webbrowser
+import pandas as pd
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QHBoxLayout,
     QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QMessageBox,
@@ -20,9 +24,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtCore import QUrl
-import tempfile
-import webbrowser
-import pandas as pd
 
 from .peffort_engine import format_time_hhmmss
 
@@ -168,7 +169,6 @@ class PlanimetriaTab(QWidget):
             self.html_path = temp_file.name
             
             # Verifica che il file sia stato creato correttamente prima di caricarlo
-            import os
             if not os.path.exists(temp_file.name):
                 raise FileNotFoundError(f"File temporaneo HTML non creato: {temp_file.name}")
             
