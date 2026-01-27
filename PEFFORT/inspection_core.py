@@ -238,7 +238,7 @@ class InspectionManager:
             'energy_kj': energy_kj,
             'is_modified': self.is_modified(effort_idx),
             'original_duration': (
-                self.time_sec[self.original_efforts[effort_idx][1]] -
+                self.time_sec[self.original_efforts[effort_idx][1] - 1] -
                 self.time_sec[self.original_efforts[effort_idx][0]]
             )
         }

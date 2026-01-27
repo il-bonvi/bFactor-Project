@@ -50,8 +50,9 @@ class EffortHandler:
             time_sec_array = self.parent.current_df['time_sec'].values
             
             # Converti indici attuali a secondi
+            # Note: end_idx è esclusivo, quindi l'ultimo campione nel segmento è a end_idx-1
             current_start_sec = float(time_sec_array[start_idx])
-            current_end_sec = float(time_sec_array[end_idx])
+            current_end_sec = float(time_sec_array[end_idx - 1])
             
             # Arrotonda il click
             new_time_sec = round(time_sec)
@@ -157,13 +158,18 @@ class EffortHandler:
                 
                 for i, (start, end, avg) in enumerate(self.parent.current_efforts):
                     # Verifica che gli indici siano validi
-                    if start >= len(self.parent.current_df) or end >= len(self.parent.current_df):
-                        logger.warning(f"Indici effort #{i+1} fuori range: start={start}, end={end}, len={len(self.parent.current_df)}")
+                    # Note: end è esclusivo, quindi deve essere <= len(df)
+                    if start < 0 or start >= len(self.parent.current_df):
+                        logger.warning(f"Indice start effort #{i+1} fuori range: start={start}, len={len(self.parent.current_df)}")
+                        continue
+                    if end <= start or end > len(self.parent.current_df):
+                        logger.warning(f"Indice end effort #{i+1} fuori range: start={start}, end={end}, len={len(self.parent.current_df)}")
                         continue
                     
                     start_time = format_time_hhmmss(self.parent.current_df['time_sec'].iloc[start])
-                    end_time = format_time_hhmmss(self.parent.current_df['time_sec'].iloc[end])
-                    duration = int(self.parent.current_df['time_sec'].iloc[end] - self.parent.current_df['time_sec'].iloc[start])
+                    # end è esclusivo, quindi l'ultimo campione nel segmento è a end-1
+                    end_time = format_time_hhmmss(self.parent.current_df['time_sec'].iloc[end - 1])
+                    duration = int(self.parent.current_df['time_sec'].iloc[end - 1] - self.parent.current_df['time_sec'].iloc[start])
                     display_text = f"#{i+1} | {start_time}→{end_time} | {duration}s | {avg:.0f}W"
                     self.parent.effort_combo.addItem(display_text, userData=i)
                 self.parent.effort_combo.blockSignals(False)
