@@ -51,7 +51,7 @@ class EffortHandler:
             
             # Converti indici attuali a secondi
             current_start_sec = float(time_sec_array[start_idx])
-            current_end_sec = float(time_sec_array[end_idx])
+            current_end_sec = float(time_sec_array[end_idx - 1])
             
             # Arrotonda il click
             new_time_sec = round(time_sec)

@@ -90,7 +90,7 @@ def plot_inspection_figure(fig: Figure,
             continue
         
         start_time = time_sec[start_idx]
-        end_time = time_sec[min(end_idx, len(time_sec) - 1)]
+        end_time = time_sec[end_idx - 1]
         
         color = colors_effort[idx % len(colors_effort)]
         
