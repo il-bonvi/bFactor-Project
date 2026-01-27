@@ -239,6 +239,11 @@ def update_detail_panel(parent, effort_idx: int):
     try:
         start_idx, end_idx, avg_power = parent.current_efforts[effort_idx]
         
+        # Validazione indici
+        if start_idx >= end_idx or end_idx <= 0:
+            logger.warning(f"Effort {effort_idx} ha indici non validi: start={start_idx}, end={end_idx}")
+            return
+        
         power = parent.current_df['power'].values
         time_sec = parent.current_df['time_sec'].values
         
@@ -289,6 +294,11 @@ def update_efforts_table(parent):
         parent.table_all_efforts.setRowCount(len(parent.current_efforts))
         
         for i, (start_idx, end_idx, avg) in enumerate(parent.current_efforts):
+            # Validazione indici
+            if start_idx >= end_idx or end_idx <= 0 or end_idx > len(time_sec):
+                logger.warning(f"Effort {i} ha indici non validi: start={start_idx}, end={end_idx}")
+                continue
+            
             start_time = time_sec[start_idx]
             end_time = time_sec[end_idx - 1]
             duration = int(end_time - start_time)

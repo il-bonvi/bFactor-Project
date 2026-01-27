@@ -181,6 +181,10 @@ class InspectionManager:
         
         start_idx, end_idx, avg_power = self.modified_efforts[effort_idx]
         
+        # Validazione indici
+        if start_idx >= end_idx or end_idx <= 0:
+            raise ValueError(f"Indici effort non validi: start={start_idx}, end={end_idx}")
+        
         seg_power = self.power[start_idx:end_idx]
         seg_time = self.time_sec[start_idx:end_idx]
         
@@ -237,7 +241,7 @@ class InspectionManager:
             'original_duration': (
                 self.time_sec[self.original_efforts[effort_idx][1] - 1] -
                 self.time_sec[self.original_efforts[effort_idx][0]]
-            )
+            ) if self.original_efforts[effort_idx][1] > 0 else 0.0
         }
     
     def get_all_stats(self) -> List[Dict[str, Any]]:

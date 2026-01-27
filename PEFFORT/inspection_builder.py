@@ -86,7 +86,7 @@ def plot_inspection_figure(fig: Figure,
     colors_effort = plt.cm.tab10(np.linspace(0, 1, len(efforts)))
     
     for idx, (start_idx, end_idx, avg) in enumerate(efforts):
-        if start_idx >= len(time_sec) or end_idx > len(time_sec):
+        if start_idx >= len(time_sec) or end_idx <= start_idx or end_idx > len(time_sec):
             continue
         
         start_time = time_sec[start_idx]

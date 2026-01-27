@@ -49,6 +49,11 @@ class EffortHandler:
             start_idx, end_idx, avg = self.parent.current_efforts[self.parent.selected_effort_idx]
             time_sec_array = self.parent.current_df['time_sec'].values
             
+            # Validazione indici
+            if start_idx >= end_idx or end_idx <= 0:
+                self.parent.status_label.setText("⚠️  Effort con indici non validi")
+                return False
+            
             # Converti indici attuali a secondi
             current_start_sec = float(time_sec_array[start_idx])
             current_end_sec = float(time_sec_array[end_idx - 1])
