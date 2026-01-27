@@ -16,7 +16,6 @@ from PySide6.QtWidgets import QMessageBox
 
 from .peffort_engine import format_time_hhmmss
 from .inspection_core import save_efforts_to_database
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
