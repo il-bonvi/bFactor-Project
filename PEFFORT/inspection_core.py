@@ -277,7 +277,6 @@ class InspectionManager:
 
 import hashlib
 import json
-import os
 from pathlib import Path
 from datetime import datetime
 
