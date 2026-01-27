@@ -156,14 +156,27 @@ class EffortHandler:
                     return
                 
                 for i, (start, end, avg) in enumerate(self.parent.current_efforts):
-                    # Verifica che gli indici siano validi
-                    if start >= len(self.parent.current_df) or end >= len(self.parent.current_df):
-                        logger.warning(f"Indici effort #{i+1} fuori range: start={start}, end={end}, len={len(self.parent.current_df)}")
+                    # Verifica che gli indici siano validi rispetto a intervalli [start, end)
+                    df_len = len(self.parent.current_df)
+                    # start deve essere un indice valido, end è esclusivo e può valere df_len ma non superarlo
+                    if start < 0 or start >= df_len or end <= start or end > df_len:
+                        logger.warning(
+                            f"Indici effort #{i+1} fuori range o non validi: start={start}, end={end}, len={df_len}"
+                        )
                         continue
-                    
-                    start_time = format_time_hhmmss(self.parent.current_df['time_sec'].iloc[start])
-                    end_time = format_time_hhmmss(self.parent.current_df['time_sec'].iloc[end])
-                    duration = int(self.parent.current_df['time_sec'].iloc[end] - self.parent.current_df['time_sec'].iloc[start])
+
+                    time_series = self.parent.current_df['time_sec']
+                    segment = time_series.iloc[start:end]
+                    if segment.empty:
+                        logger.warning(
+                            f"Segmento vuoto per effort #{i+1}: start={start}, end={end}, len={df_len}"
+                        )
+                        continue
+
+                    # start_time ed end_time derivano dal segmento [start, end) -> ultimo campione è end-1
+                    start_time = format_time_hhmmss(segment.iloc[0])
+                    end_time = format_time_hhmmss(segment.iloc[-1])
+                    duration = int(segment.iloc[-1] - segment.iloc[0])
                     display_text = f"#{i+1} | {start_time}→{end_time} | {duration}s | {avg:.0f}W"
                     self.parent.effort_combo.addItem(display_text, userData=i)
                 self.parent.effort_combo.blockSignals(False)
