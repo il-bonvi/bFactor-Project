@@ -23,7 +23,6 @@ from .inspection_core import (
     load_efforts_from_database,
     get_saved_effort_info
 )
-from .inspection_builder import plot_inspection_figure
 from .inspection_handlers import EffortHandler
 from .inspection_widgets import (
     build_top_bar, build_graph_widget, build_detail_panel,
