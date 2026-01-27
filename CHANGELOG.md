@@ -1,3 +1,12 @@
+## [0.6.6] - 2026-01-27
+### PEFFORT - Visual Inspection Tab (in progress)
+- **Inspection Tab**: Nuova scheda per ispezione visuale e modifica interattiva degli effort
+- **Modifica manuale effort**: Selezione effort da dropdown, drag dei bordi sinistro/destro per regolare inizio/fine (work in progress)
+- **InspectionManager**: Logica core per gestire modifiche con integrità dati, metodi apply/reset per ogni effort
+- **Event handlers**: Click detection, drag handling, timeline interaction per modifica precisa bordi
+- **Status**: Visual inspection fully working, modifica effort in progress
+- **Dataset**: Cartella database con json per salvare gli edit nel caso di reloading FIT.
+
 ## [0.6.5] - 2026-01-25
 ### PEFFORT - 3D Map, Robustezza, Miglioramenti
 - **Rendering 3D Map**: Aggiunta visualizzazione interattiva 3D della traccia e degli sforzi tramite MapTiler, oltre alla planimetria classica e stream watt (quest'ultimo in versione skeleton)

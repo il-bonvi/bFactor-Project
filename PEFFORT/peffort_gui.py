@@ -32,6 +32,7 @@ from .peffort_config import AnalysisConfig, AthleteProfile, EffortConfig, Sprint
 from .pplan_gui import PlanimetriaTab
 from .stream_gui import StreamTab
 from .map3d_gui import Map3DTab
+from .inspection_gui import InspectionTab
 
 # Import shared styles
 from shared.styles import TEMI, get_style
@@ -171,15 +172,19 @@ class EffortAnalyzer(QWidget):
         self.tab_altimetria = self._create_altimetria_tab()
         self.tabs.addTab(self.tab_altimetria, "📈 Altimetria")
         
-        # Tab 2: Planimetria
+        # Tab 2: Inspection (NUOVA - per modifica visuale)
+        self.tab_inspection = InspectionTab(self)
+        self.tabs.addTab(self.tab_inspection, "🔍 Inspection")
+        
+        # Tab 3: Planimetria
         self.tab_planimetria = PlanimetriaTab(self)
         self.tabs.addTab(self.tab_planimetria, "🗺️ Planimetria")
         
-        # Tab 3: Stream
+        # Tab 4: Stream
         self.tab_stream = StreamTab(self)
         self.tabs.addTab(self.tab_stream, "📊 Stream")
         
-        # Tab 4: 3D Map
+        # Tab 5: 3D Map
         self.tab_3dmap = Map3DTab(self)
         self.tabs.addTab(self.tab_3dmap, "🌍 3D Map")
         
@@ -449,7 +454,8 @@ class EffortAnalyzer(QWidget):
             # Popola tabelle tab altimetria
             self.populate_tables(df, efforts, sprints, ftp, weight)
             
-            # Aggiorna anche le altre tabs
+            # Aggiorna anche le altre tabs (passa fit_path solo a inspection_tab)
+            self.tab_inspection.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str, fit_path=self.file_path)
             self.tab_planimetria.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
             self.tab_stream.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)
             self.tab_3dmap.update_analysis(df, efforts, sprints, ftp, weight, self.current_params_str)

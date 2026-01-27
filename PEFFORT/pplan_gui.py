@@ -12,16 +12,18 @@ Vista 2D degli effort su coordinate geografiche
 
 from typing import Optional, List, Tuple, Dict, Any
 import logging
+import os
+import tempfile
+import webbrowser
+import pandas as pd
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QHBoxLayout,
     QTableWidget, QTableWidgetItem, QHeaderView, QPushButton, QMessageBox,
     QComboBox
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtCore import QUrl
-import tempfile
-import webbrowser
-import pandas as pd
 
 from .peffort_engine import format_time_hhmmss
 
@@ -76,7 +78,6 @@ class PlanimetriaTab(QWidget):
         self.web_view = QWebEngineView()
         self.web_view.setStyleSheet("background: #0f172a; border-radius: 8px;")
         # Configura settings per caricare Mapbox/tile da pagine HTML locali
-        from PySide6.QtWebEngineCore import QWebEngineSettings
         web_settings = self.web_view.settings()
         web_settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
         layout.addWidget(self.web_view, stretch=3)
@@ -166,6 +167,11 @@ class PlanimetriaTab(QWidget):
             temp_file.write(html)
             temp_file.close()
             self.html_path = temp_file.name
+            
+            # Verifica che il file sia stato creato correttamente prima di caricarlo
+            if not os.path.exists(temp_file.name):
+                raise FileNotFoundError(f"File temporaneo HTML non creato: {temp_file.name}")
+            
             self.web_view.setUrl(QUrl.fromLocalFile(temp_file.name))
 
             self.btn_browser.setEnabled(True)
