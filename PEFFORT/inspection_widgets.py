@@ -248,9 +248,10 @@ def update_detail_panel(parent, effort_idx: int):
         else:
             hr = np.zeros(len(power))  # Array di zeri se heartrate non disponibile
         
-        seg_power = power[start_idx:end_idx+1]
-        seg_time = time_sec[start_idx:end_idx+1]
-        seg_hr = hr[start_idx:end_idx+1]
+        # end_idx è esclusivo, quindi usiamo slicing standard senza +1
+        seg_power = power[start_idx:end_idx]
+        seg_time = time_sec[start_idx:end_idx]
+        seg_hr = hr[start_idx:end_idx]
         
         start_time = seg_time[0]
         end_time = seg_time[-1]
