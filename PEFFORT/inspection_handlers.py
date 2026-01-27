@@ -10,7 +10,7 @@ INSPECTION HANDLERS - Logica di modifica e gestione degli effort
 Gestisce: applicazione modifiche, reset, eliminazione, salvataggio
 """
 
-from typing import Optional, List, Tuple
+from typing import Optional
 import logging
 from PySide6.QtWidgets import QMessageBox
 
