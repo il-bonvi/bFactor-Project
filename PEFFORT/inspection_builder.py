@@ -134,3 +134,12 @@ def plot_inspection_figure(fig: Figure,
     
     # Imposta limiti assi
     ax2.set_xlim(time_sec[0], time_sec[-1])
+    ax1.set_xlim(time_sec[0], time_sec[-1])
+    
+    # Imposta i limiti Y per avere spazio per le labels
+    y1_max = max(power) if len(power) > 0 else 100
+    y2_max = max(rolling_avg[~np.isnan(rolling_avg)]) if len(rolling_avg[~np.isnan(rolling_avg)]) > 0 else 100
+    ax1.set_ylim(0, y1_max * 1.1)
+    ax2.set_ylim(0, y2_max * 1.1)
+    
+    logger.debug(f"Grafico inspection completato: {len(efforts)} efforts visualizzati")

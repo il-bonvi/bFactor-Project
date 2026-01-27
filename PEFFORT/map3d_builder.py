@@ -97,12 +97,14 @@ def generate_3d_map_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]]
             raise ValueError("Tutti i valori di coordinate sono NaN - impossibile creare mappa 3D")
         
         # Calcola centro (ignora NaN)
-        center_lat = float(np.nanmean([float(np.nanmin(lat)), float(np.nanmax(lat))]))
-        center_lon = float(np.nanmean([float(np.nanmin(lon)), float(np.nanmax(lon))]))
+        # Dopo il controllo precedente, sappiamo che almeno un valore non è NaN
+        lat_min = float(np.nanmin(lat))
+        lat_max = float(np.nanmax(lat))
+        lon_min = float(np.nanmin(lon))
+        lon_max = float(np.nanmax(lon))
         
-        # Valida NaN risultanti
-        if np.isnan(center_lat) or np.isnan(center_lon):
-            raise ValueError(f"Coordinate non valide: lat={center_lat}, lon={center_lon}")
+        center_lat = float(np.nanmean([lat_min, lat_max]))
+        center_lon = float(np.nanmean([lon_min, lon_max]))
         
         # Calcola zoom basato sull'extent
         zoom = calculate_zoom_level(lat, lon)

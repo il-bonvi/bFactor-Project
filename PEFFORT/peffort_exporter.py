@@ -142,7 +142,9 @@ def create_pdf_report(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
                 if len(seg_power) >= 5:
                     # Calcolo best 5s - trova la massima media mobile di 5 secondi
                     # range(len(seg_power)-4) dà tutti gli indici di partenza validi
-                    best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
+                    # Usa max con default per evitare errori se il range è vuoto
+                    moving_avgs = [seg_power[i:i+5].mean() for i in range(len(seg_power)-4)]
+                    best_5s = max(moving_avgs) if moving_avgs else 0
                     best_5s_watt = int(best_5s)
 
                 # Calcolo kJ (con logging per gap > 30s)
@@ -374,7 +376,8 @@ def plot_unified_html(df: pd.DataFrame, efforts: List[Tuple[int, int, float]],
         best_5s_watt = 0
         best_5s_watt_kg = 0
         if len(seg_power) >= 5 and weight > 0:
-            best_5s = max([seg_power[i:i+5].mean() for i in range(len(seg_power)-4)])
+            moving_avgs = [seg_power[i:i+5].mean() for i in range(len(seg_power)-4)]
+            best_5s = max(moving_avgs) if moving_avgs else 0
             best_5s_watt = int(best_5s)
             best_5s_watt_kg = best_5s / weight
         
