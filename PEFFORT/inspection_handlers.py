@@ -148,7 +148,19 @@ class EffortHandler:
                 # Aggiorna UI
                 self.parent.effort_combo.blockSignals(True)
                 self.parent.effort_combo.clear()
+                
+                # Verifica che il DataFrame abbia la colonna time_sec
+                if 'time_sec' not in self.parent.current_df.columns:
+                    logger.error("Colonna 'time_sec' non trovata nel DataFrame")
+                    self.parent.effort_combo.blockSignals(False)
+                    return
+                
                 for i, (start, end, avg) in enumerate(self.parent.current_efforts):
+                    # Verifica che gli indici siano validi
+                    if start >= len(self.parent.current_df) or end >= len(self.parent.current_df):
+                        logger.warning(f"Indici effort #{i+1} fuori range: start={start}, end={end}, len={len(self.parent.current_df)}")
+                        continue
+                    
                     start_time = format_time_hhmmss(self.parent.current_df['time_sec'].iloc[start])
                     end_time = format_time_hhmmss(self.parent.current_df['time_sec'].iloc[end])
                     duration = int(self.parent.current_df['time_sec'].iloc[end] - self.parent.current_df['time_sec'].iloc[start])

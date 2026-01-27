@@ -77,10 +77,17 @@ class InspectionManager:
     
     def _recalculate_effort_power(self, start_idx: int, end_idx: int) -> float:
         """Calcola la potenza media di un effort in base ai nuovi indici"""
-        if start_idx >= end_idx or end_idx > len(self.power):
+        # Verifica che gli indici siano validi
+        if start_idx < 0 or start_idx >= len(self.power):
+            return 0.0
+        if end_idx < 0 or end_idx > len(self.power):
+            return 0.0
+        if start_idx >= end_idx:
             return 0.0
         
-        seg_power = self.power[start_idx:end_idx+1]
+        # Assicura che end_idx sia entro i limiti quando usato con slicing
+        safe_end_idx = min(end_idx, len(self.power) - 1)
+        seg_power = self.power[start_idx:safe_end_idx+1]
         return float(np.mean(seg_power[seg_power > 0])) if (seg_power > 0).any() else 0.0
     
     def modify_effort(self, effort_idx: int, start_sec: float, end_sec: float):

@@ -240,7 +240,12 @@ def update_detail_panel(parent, effort_idx: int):
         
         power = parent.current_df['power'].values
         time_sec = parent.current_df['time_sec'].values
-        hr = parent.current_df['heartrate'].values
+        
+        # Controlla se la colonna heartrate esiste
+        if 'heartrate' in parent.current_df.columns:
+            hr = parent.current_df['heartrate'].values
+        else:
+            hr = np.zeros(len(power))  # Array di zeri se heartrate non disponibile
         
         seg_power = power[start_idx:end_idx+1]
         seg_time = time_sec[start_idx:end_idx+1]
