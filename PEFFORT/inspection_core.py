@@ -181,8 +181,8 @@ class InspectionManager:
         
         start_idx, end_idx, avg_power = self.modified_efforts[effort_idx]
         
-        seg_power = self.power[start_idx:end_idx+1]
-        seg_time = self.time_sec[start_idx:end_idx+1]
+        seg_power = self.power[start_idx:end_idx]
+        seg_time = self.time_sec[start_idx:end_idx]
         
         start_time = seg_time[0]
         end_time = seg_time[-1]
@@ -194,7 +194,7 @@ class InspectionManager:
         
         # HR se disponibile
         if 'heartrate' in self.df.columns:
-            seg_hr = self.df['heartrate'].iloc[start_idx:end_idx+1].values
+            seg_hr = self.df['heartrate'].iloc[start_idx:end_idx].values
             hr_mean = float(seg_hr[seg_hr > 0].mean()) if (seg_hr > 0).any() else 0.0
             hr_max = float(seg_hr.max()) if len(seg_hr) > 0 else 0.0
         else:
@@ -203,7 +203,7 @@ class InspectionManager:
         
         # Altimetria se disponibile
         if 'altitude' in self.df.columns:
-            seg_alt = self.df['altitude'].iloc[start_idx:end_idx+1].values
+            seg_alt = self.df['altitude'].iloc[start_idx:end_idx].values
             elevation_gain = float(seg_alt[-1] - seg_alt[0])
             vam = elevation_gain / (duration / 3600) if duration > 0 else 0.0
         else:
