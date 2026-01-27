@@ -17,7 +17,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
-import matplotlib.patches as mpatches
 
 logger = logging.getLogger(__name__)
 
