@@ -175,14 +175,17 @@ class InspectionManager:
         return list(self.modified_efforts)
     
     def get_effort_stats(self, effort_idx: int) -> Dict[str, Any]:
-        """Ritorna statistiche dettagliate di un effort"""
+        """Ritorna statistiche dettagliate di un effort
+        
+        Note: end_idx è esclusivo (non incluso), seguendo la convenzione Python slicing
+        """
         if effort_idx < 0 or effort_idx >= len(self.modified_efforts):
             raise ValueError(f"Indice effort non valido: {effort_idx}")
         
         start_idx, end_idx, avg_power = self.modified_efforts[effort_idx]
         
-        seg_power = self.power[start_idx:end_idx+1]
-        seg_time = self.time_sec[start_idx:end_idx+1]
+        seg_power = self.power[start_idx:end_idx]
+        seg_time = self.time_sec[start_idx:end_idx]
         
         start_time = seg_time[0]
         end_time = seg_time[-1]
@@ -194,7 +197,7 @@ class InspectionManager:
         
         # HR se disponibile
         if 'heartrate' in self.df.columns:
-            seg_hr = self.df['heartrate'].iloc[start_idx:end_idx+1].values
+            seg_hr = self.df['heartrate'].iloc[start_idx:end_idx].values
             hr_mean = float(seg_hr[seg_hr > 0].mean()) if (seg_hr > 0).any() else 0.0
             hr_max = float(seg_hr.max()) if len(seg_hr) > 0 else 0.0
         else:
@@ -203,7 +206,7 @@ class InspectionManager:
         
         # Altimetria se disponibile
         if 'altitude' in self.df.columns:
-            seg_alt = self.df['altitude'].iloc[start_idx:end_idx+1].values
+            seg_alt = self.df['altitude'].iloc[start_idx:end_idx].values
             elevation_gain = float(seg_alt[-1] - seg_alt[0])
             vam = elevation_gain / (duration / 3600) if duration > 0 else 0.0
         else:
@@ -215,7 +218,7 @@ class InspectionManager:
         
         # Calcolo energia (kJ)
         energy_j = 0.0
-        for i in range(start_idx, min(end_idx, len(self.time_sec) - 1)):
+        for i in range(start_idx, min(end_idx - 1, len(self.time_sec) - 1)):
             dt = self.time_sec[i+1] - self.time_sec[i]
             if dt > 0 and dt < 30:  # Sanità check per delta
                 energy_j += self.power[i] * dt
