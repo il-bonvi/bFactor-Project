@@ -10,7 +10,6 @@ INSPECTION WIDGETS - Costruzione e setup dei widget
 Tabelle, combo box, pulsanti e layout della tab ispezione
 """
 
-from typing import Optional, List, Tuple, Any
 import logging
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QHBoxLayout, 
