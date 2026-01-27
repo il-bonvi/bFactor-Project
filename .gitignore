@@ -27,6 +27,7 @@ zBuilding/
 bTeam/bteam_config.json
 bTeam/bteam.db
 bTeam/bteam_data/
+Database/
 
 # Environment variables e credenziali (IMPORTANTE!)
 .env
