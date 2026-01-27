@@ -287,8 +287,18 @@ def update_efforts_table(parent):
         parent.table_all_efforts.setRowCount(len(parent.current_efforts))
         
         for i, (start_idx, end_idx, avg) in enumerate(parent.current_efforts):
-            start_time = time_sec[start_idx]
-            end_time = time_sec[end_idx]
+            # Usa end_idx come indice esclusivo, coerente con il motore:
+            # il segmento contiene i campioni [start_idx, end_idx-1]
+            segment = time_sec[start_idx:end_idx]
+            if segment.size == 0:
+                logger.warning(
+                    "Segmento vuoto per effort %s (start_idx=%s, end_idx=%s, len(time_sec)=%s)",
+                    i, start_idx, end_idx, len(time_sec)
+                )
+                continue
+
+            start_time = segment[0]
+            end_time = segment[-1]
             duration = int(end_time - start_time)
             
             # Highlight riga selezionata
