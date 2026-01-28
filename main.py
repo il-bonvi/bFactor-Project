@@ -21,7 +21,7 @@ from PySide6.QtGui import QFont
 from PEFFORT import EffortAnalyzer
 from omniPD_calculator import OmniPDAnalyzer
 from MetaboPower import MetaboPowerApp
-from bTeam import BTeamApp
+# from bTeam import BTeamApp  # TODO: Riabilita quando bTeam è disponibile
 from RaceReport import RaceReportGUI
 from shared.styles import get_style, TEMI
 
@@ -199,12 +199,13 @@ class BfactorLauncher(QWidget):
             self.metabopower_window.showMaximized()
 
     def open_bteam(self):
-        if self.bteam_window is not None and self.bteam_window.isVisible():
-            self.bteam_window.raise_()
-            self.bteam_window.activateWindow()
-        else:
-            self.bteam_window = BTeamApp(theme=self.current_theme)
-            self.bteam_window.showMaximized()
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self,
+            "bTeam non disponibile",
+            "L'applicazione bTeam non è installata in questa directory.\n"
+            "Puoi scaricarla dalla cartella bTeam/ oppure configurarla in futuro."
+        )
 
     def open_racereport(self):
         """Apre la finestra Race Report"""
